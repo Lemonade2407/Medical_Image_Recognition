@@ -1,0 +1,293 @@
+=== training unet seed=0 ===
+[unet seed=0 size=128 gray=True ep=24]
+  ep01 loss=1.2916 val_dice=0.4591 (3.0s)
+  ep02 loss=0.9477 val_dice=0.4463 (2.4s)
+  ep03 loss=0.7662 val_dice=0.4820 (2.5s)
+  ep04 loss=0.6902 val_dice=0.5653 (2.5s)
+  ep05 loss=0.6451 val_dice=0.5127 (2.4s)
+  ep06 loss=0.5976 val_dice=0.5516 (2.5s)
+  ep07 loss=0.6260 val_dice=0.5374 (2.3s)
+  ep08 loss=0.5649 val_dice=0.5834 (2.5s)
+  ep09 loss=0.5477 val_dice=0.5872 (2.3s)
+  ep10 loss=0.5468 val_dice=0.6259 (2.6s)
+  ep11 loss=0.5089 val_dice=0.6247 (2.2s)
+  ep12 loss=0.5359 val_dice=0.6458 (2.6s)
+  ep13 loss=0.4982 val_dice=0.6289 (2.2s)
+  ep14 loss=0.5022 val_dice=0.6415 (2.7s)
+  ep15 loss=0.4777 val_dice=0.6128 (2.2s)
+  ep16 loss=0.5019 val_dice=0.6454 (2.2s)
+  ep17 loss=0.4433 val_dice=0.6362 (2.7s)
+  ep18 loss=0.4453 val_dice=0.6520 (2.7s)
+  ep19 loss=0.4364 val_dice=0.6529 (2.6s)
+  ep20 loss=0.4456 val_dice=0.6733 (2.4s)
+  ep21 loss=0.4289 val_dice=0.6729 (2.7s)
+  ep22 loss=0.4335 val_dice=0.6682 (2.3s)
+  ep23 loss=0.4264 val_dice=0.6820 (2.6s)
+  ep24 loss=0.4286 val_dice=0.6956 (2.3s)
+params: 1.942M
+TEST  dice_lesion=0.6407  miou=0.8116  prec=0.8352  recall=0.7269  hd95=140.6  asd=108.8
+wrote /mnt/workspace/busi_p0/results/unet_s128g_e24_seed0.json
+=== training unet seed=1 ===
+[unet seed=1 size=128 gray=True ep=24]
+  ep01 loss=1.4754 val_dice=0.2437 (3.0s)
+  ep02 loss=1.1613 val_dice=0.3968 (2.2s)
+  ep03 loss=0.9446 val_dice=0.3646 (2.4s)
+  ep04 loss=0.7946 val_dice=0.4586 (2.6s)
+  ep05 loss=0.7080 val_dice=0.4173 (2.4s)
+  ep06 loss=0.6683 val_dice=0.4190 (2.6s)
+  ep07 loss=0.6169 val_dice=0.4463 (2.3s)
+  ep08 loss=0.6172 val_dice=0.5557 (2.5s)
+  ep09 loss=0.5820 val_dice=0.6004 (2.3s)
+  ep10 loss=0.5935 val_dice=0.6007 (2.7s)
+  ep11 loss=0.5419 val_dice=0.6008 (2.2s)
+  ep12 loss=0.5363 val_dice=0.5989 (2.2s)
+  ep13 loss=0.5580 val_dice=0.5983 (2.2s)
+  ep14 loss=0.5278 val_dice=0.6057 (2.8s)
+  ep15 loss=0.5168 val_dice=0.6138 (2.3s)
+  ep16 loss=0.5279 val_dice=0.6069 (2.6s)
+  ep17 loss=0.4762 val_dice=0.6422 (2.2s)
+  ep18 loss=0.4558 val_dice=0.6273 (2.7s)
+  ep19 loss=0.4836 val_dice=0.6354 (2.2s)
+  ep20 loss=0.4718 val_dice=0.6223 (2.6s)
+  ep21 loss=0.4778 val_dice=0.6191 (2.2s)
+  ep22 loss=0.4673 val_dice=0.6202 (2.6s)
+  ep23 loss=0.4609 val_dice=0.6440 (2.4s)
+  ep24 loss=0.4586 val_dice=0.6193 (2.6s)
+params: 1.942M
+TEST  dice_lesion=0.6531  miou=0.8138  prec=0.8712  recall=0.7029  hd95=133.7  asd=103.8
+wrote /mnt/workspace/busi_p0/results/unet_s128g_e24_seed1.json
+=== training unet seed=2 ===
+[unet seed=2 size=128 gray=True ep=24]
+  ep01 loss=1.3593 val_dice=0.1467 (3.1s)
+  ep02 loss=1.0514 val_dice=0.3973 (2.4s)
+  ep03 loss=0.8746 val_dice=0.4297 (2.6s)
+  ep04 loss=0.7677 val_dice=0.5054 (2.3s)
+  ep05 loss=0.7117 val_dice=0.5021 (2.5s)
+  ep06 loss=0.6855 val_dice=0.4844 (2.4s)
+  ep07 loss=0.6374 val_dice=0.5130 (2.4s)
+  ep08 loss=0.6429 val_dice=0.5591 (2.2s)
+  ep09 loss=0.5773 val_dice=0.5585 (2.7s)
+  ep10 loss=0.5566 val_dice=0.5879 (2.2s)
+  ep11 loss=0.5421 val_dice=0.5799 (2.2s)
+  ep12 loss=0.5733 val_dice=0.5652 (2.2s)
+  ep13 loss=0.5530 val_dice=0.5876 (2.6s)
+  ep14 loss=0.5443 val_dice=0.5979 (2.4s)
+  ep15 loss=0.5149 val_dice=0.5890 (2.6s)
+  ep16 loss=0.5210 val_dice=0.6268 (2.2s)
+  ep17 loss=0.5014 val_dice=0.5850 (2.6s)
+  ep18 loss=0.5071 val_dice=0.6190 (2.2s)
+  ep19 loss=0.4887 val_dice=0.6348 (2.8s)
+  ep20 loss=0.4873 val_dice=0.6191 (2.2s)
+  ep21 loss=0.4785 val_dice=0.5862 (2.5s)
+  ep22 loss=0.4827 val_dice=0.6310 (2.2s)
+  ep23 loss=0.4859 val_dice=0.6107 (2.6s)
+  ep24 loss=0.4587 val_dice=0.6299 (2.3s)
+params: 1.942M
+TEST  dice_lesion=0.6140  miou=0.8022  prec=0.8184  recall=0.7165  hd95=149.9  asd=116.7
+wrote /mnt/workspace/busi_p0/results/unet_s128g_e24_seed2.json
+=== training attunet seed=0 ===
+[attunet seed=0 size=128 gray=True ep=24]
+  ep01 loss=1.0902 val_dice=0.2822 (3.5s)
+  ep02 loss=0.8516 val_dice=0.4515 (3.0s)
+  ep03 loss=0.7107 val_dice=0.2769 (3.0s)
+  ep04 loss=0.6763 val_dice=0.3462 (2.8s)
+  ep05 loss=0.6631 val_dice=0.5599 (3.1s)
+  ep06 loss=0.6465 val_dice=0.5642 (2.8s)
+  ep07 loss=0.5912 val_dice=0.5571 (3.0s)
+  ep08 loss=0.5776 val_dice=0.5577 (2.7s)
+  ep09 loss=0.5487 val_dice=0.5936 (2.7s)
+  ep10 loss=0.5225 val_dice=0.6061 (2.8s)
+  ep11 loss=0.5190 val_dice=0.5856 (3.0s)
+  ep12 loss=0.5133 val_dice=0.6505 (3.0s)
+  ep13 loss=0.5157 val_dice=0.5863 (3.0s)
+  ep14 loss=0.4852 val_dice=0.6137 (2.9s)
+  ep15 loss=0.4809 val_dice=0.6236 (3.2s)
+  ep16 loss=0.4709 val_dice=0.6333 (2.9s)
+  ep17 loss=0.4861 val_dice=0.6520 (3.0s)
+  ep18 loss=0.4718 val_dice=0.6450 (3.0s)
+  ep19 loss=0.4495 val_dice=0.6364 (2.8s)
+  ep20 loss=0.4321 val_dice=0.6199 (3.1s)
+  ep21 loss=0.4488 val_dice=0.6497 (2.7s)
+  ep22 loss=0.4201 val_dice=0.6381 (2.8s)
+  ep23 loss=0.4159 val_dice=0.6289 (2.9s)
+  ep24 loss=0.4160 val_dice=0.6652 (3.0s)
+params: 1.965M
+TEST  dice_lesion=0.6178  miou=0.8014  prec=0.8284  recall=0.7055  hd95=160.6  asd=125.0
+wrote /mnt/workspace/busi_p0/results/attunet_s128g_e24_seed0.json
+=== training attunet seed=1 ===
+[attunet seed=1 size=128 gray=True ep=24]
+  ep01 loss=1.2108 val_dice=0.4705 (3.3s)
+  ep02 loss=0.8983 val_dice=0.2882 (3.0s)
+  ep03 loss=0.7684 val_dice=0.5243 (2.8s)
+  ep04 loss=0.6819 val_dice=0.5751 (2.7s)
+  ep05 loss=0.6429 val_dice=0.5960 (3.1s)
+  ep06 loss=0.6071 val_dice=0.5777 (2.9s)
+  ep07 loss=0.5778 val_dice=0.5180 (3.0s)
+  ep08 loss=0.5670 val_dice=0.5437 (3.2s)
+  ep09 loss=0.5218 val_dice=0.6007 (2.9s)
+  ep10 loss=0.5244 val_dice=0.6314 (3.1s)
+  ep11 loss=0.4920 val_dice=0.6062 (2.7s)
+  ep12 loss=0.4960 val_dice=0.5987 (2.7s)
+  ep13 loss=0.5070 val_dice=0.6375 (2.8s)
+  ep14 loss=0.5025 val_dice=0.5767 (3.0s)
+  ep15 loss=0.4839 val_dice=0.6360 (3.2s)
+  ep16 loss=0.4801 val_dice=0.6557 (2.8s)
+  ep17 loss=0.4423 val_dice=0.6375 (3.1s)
+  ep18 loss=0.4396 val_dice=0.6762 (3.1s)
+  ep19 loss=0.4168 val_dice=0.6233 (2.9s)
+  ep20 loss=0.4218 val_dice=0.6699 (3.2s)
+  ep21 loss=0.4236 val_dice=0.6597 (2.7s)
+  ep22 loss=0.4204 val_dice=0.6580 (2.8s)
+  ep23 loss=0.4058 val_dice=0.6804 (3.2s)
+  ep24 loss=0.4214 val_dice=0.6731 (2.7s)
+params: 1.965M
+TEST  dice_lesion=0.6346  miou=0.8108  prec=0.8771  recall=0.6911  hd95=155.5  asd=128.3
+wrote /mnt/workspace/busi_p0/results/attunet_s128g_e24_seed1.json
+=== training attunet seed=2 ===
+[attunet seed=2 size=128 gray=True ep=24]
+  ep01 loss=1.2904 val_dice=0.3545 (3.6s)
+  ep02 loss=0.9926 val_dice=0.2644 (2.7s)
+  ep03 loss=0.8125 val_dice=0.4408 (3.2s)
+  ep04 loss=0.7217 val_dice=0.5001 (2.9s)
+  ep05 loss=0.6726 val_dice=0.5239 (2.9s)
+  ep06 loss=0.6461 val_dice=0.3708 (2.6s)
+  ep07 loss=0.6018 val_dice=0.5928 (2.7s)
+  ep08 loss=0.5822 val_dice=0.6133 (3.1s)
+  ep09 loss=0.5515 val_dice=0.6260 (2.7s)
+  ep10 loss=0.5490 val_dice=0.5893 (3.0s)
+  ep11 loss=0.5415 val_dice=0.6182 (2.7s)
+  ep12 loss=0.5152 val_dice=0.6345 (2.9s)
+  ep13 loss=0.5030 val_dice=0.6227 (2.7s)
+  ep14 loss=0.4915 val_dice=0.6091 (2.9s)
+  ep15 loss=0.5459 val_dice=0.5882 (2.8s)
+  ep16 loss=0.4786 val_dice=0.6441 (2.7s)
+  ep17 loss=0.4616 val_dice=0.6511 (3.1s)
+  ep18 loss=0.4581 val_dice=0.6633 (2.8s)
+  ep19 loss=0.4373 val_dice=0.6601 (3.1s)
+  ep20 loss=0.4530 val_dice=0.6652 (3.0s)
+  ep21 loss=0.4319 val_dice=0.6633 (2.8s)
+  ep22 loss=0.4308 val_dice=0.6140 (2.7s)
+  ep23 loss=0.4410 val_dice=0.6472 (2.7s)
+  ep24 loss=0.4303 val_dice=0.6426 (3.0s)
+params: 1.965M
+TEST  dice_lesion=0.6226  miou=0.8100  prec=0.8150  recall=0.7413  hd95=162.3  asd=126.6
+wrote /mnt/workspace/busi_p0/results/attunet_s128g_e24_seed2.json
+=== summarizing ===
+{
+  "protocol": {
+    "split": "splits/busi_seed0.json",
+    "size": 128,
+    "mode": "gray",
+    "epochs": 24,
+    "seeds": [
+      0,
+      1,
+      2
+    ]
+  },
+  "models": {
+    "unet": {
+      "params": 1942306,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "aggregate": {
+        "dice_lesion": {
+          "mean": 0.6359126529206452,
+          "std": 0.020003353665368685,
+          "per_seed": [
+            0.6407,
+            0.6531,
+            0.614
+          ]
+        },
+        "iou_lesion": {
+          "mean": 0.5533620230154176,
+          "std": 0.018946517614404024,
+          "per_seed": [
+            0.5625,
+            0.566,
+            0.5316
+          ]
+        },
+        "miou_hist": {
+          "mean": 0.8092222141527933,
+          "std": 0.006168770819748341,
+          "per_seed": [
+            0.8116,
+            0.8138,
+            0.8022
+          ]
+        },
+        "precision": {
+          "mean": 0.8415669483096714,
+          "std": 0.026975498503080397,
+          "per_seed": [
+            0.8352,
+            0.8712,
+            0.8184
+          ]
+        },
+        "recall": {
+          "mean": 0.715428745286277,
+          "std": 0.012038080014107083,
+          "per_seed": [
+            0.7269,
+            0.7029,
+            0.7165
+          ]
+        },
+        "specificity": {
+          "mean": 0.9882467248938281,
+          "std": 0.0024636512991230326,
+          "per_seed": [
+            0.9876,
+            0.991,
+            0.9862
+          ]
+        },
+        "accuracy": {
+          "mean": 0.9664682135743955,
+          "std": 0.001670162810758433,
+          "per_seed": [
+            0.9667,
+            0.968,
+            0.9647
+          ]
+        },
+        "hd95": {
+          "mean": 141.40118388634951,
+          "std": 8.13322815657627,
+          "per_seed": [
+            140.6291,
+            133.6815,
+            149.8929
+          ]
+        },
+        "asd": {
+          "mean": 109.74757163757327,
+          "std": 6.502917981100228,
+          "per_seed": [
+            108.769,
+            103.7894,
+            116.6843
+          ]
+        },
+        "fg_ratio_normal": {
+          "mean": 0.0029109772895466643,
+          "std": 0.00035900379933800783,
+          "per_seed": [
+            0.0025,
+            0.003,
+            0.0032
+          ]
+        },
+        "dice_benign": {
+          "mean": 0.6590208001709689,
+          "std": 0.029474984905168346,
+          "per_seed": [
+            0.6743
+wrote /mnt/workspace/busi_p0/results/multiseed_summary.json
+P0-2 DONE

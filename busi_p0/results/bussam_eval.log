@@ -1,0 +1,25 @@
+checkpoint: /mnt/workspace/code/BUSSAM/outputs/BUSSAM_1012211650/checkpoints/BUSSAM_10122156_63_85.87831370974001.pth
+/mnt/workspace/code/BUSSAM/models/segment_anything_samus/build_sam_us.py:100: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(f)
+/mnt/workspace/busi_p0/src/eval_bussam.py:107: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(ckpt, map_location="cpu")
+  bussam 20/96 running dice=0.8676
+  bussam 40/96 running dice=0.8476
+  bussam 60/96 running dice=0.8464
+  bussam 80/96 running dice=0.8335
+AGG: {
+  "n_lesion": 96,
+  "dice_lesion": 0.8361171314213821,
+  "dice_lesion_std": 0.1304756632225959,
+  "iou_lesion": 0.7370918779578153,
+  "miou_hist": 0.8815137340158065,
+  "precision": 0.8911610013644521,
+  "recall": 0.8557414948671953,
+  "specificity": 0.988259425292702,
+  "accuracy": 0.974876313428315,
+  "hd95": 34.99123960914017,
+  "asd": 11.808805313724207,
+  "dice_benign": 0.8517654757176863,
+  "dice_malignant": 0.8033060869291316
+}
+wrote /mnt/workspace/busi_p0/results/prompt_bussam.json

@@ -1,0 +1,33 @@
+# 虚拟环境
+.venv/
+**/.venv/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+
+# 模型权重
+models/
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+*.onnx
+
+# 训练产物
+outputs/
+**/outputs/
+runs/
+
+# 数据集
+busi_p0/data/
+data/
+
+# 系统 / IDE / 临时
+.local/
+.cache/
+TEMP-FILE-STATION/
+
+# 二进制 / 压缩包
+*.so
+*.zip

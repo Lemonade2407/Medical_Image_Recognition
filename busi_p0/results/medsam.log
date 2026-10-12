@@ -1,0 +1,29 @@
+[medsam] lesion test images: 96
+Loading weights:   0%|          | 0/315 [00:00<?, ?it/s]Loading weights: 100%|██████████| 315/315 [00:00<00:00, 6846.37it/s]
+The tied weights mapping and config for this model specifies to tie shared_image_embedding.positional_embedding to prompt_encoder.shared_embedding.positional_embedding, but both are present in the checkpoints, so we will NOT tie them. You should update the config with `tie_word_embeddings=False` to silence this warning
+The image processor of type `SamImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. 
+  medsam 10/96 running dice=0.1465
+  medsam 20/96 running dice=0.1205
+  medsam 30/96 running dice=0.1317
+  medsam 40/96 running dice=0.1325
+  medsam 50/96 running dice=0.1248
+  medsam 60/96 running dice=0.1109
+  medsam 70/96 running dice=0.1185
+  medsam 80/96 running dice=0.1183
+  medsam 90/96 running dice=0.1213
+AGG: {
+  "n_lesion": 96,
+  "dice_lesion": 0.12473462362688481,
+  "dice_lesion_std": 0.09125098218986447,
+  "iou_lesion": 0.06918697087777671,
+  "miou_hist": 0.5240543240298755,
+  "precision": 0.3418739277746757,
+  "recall": 0.07280046983380022,
+  "specificity": 0.9842567026953287,
+  "accuracy": 0.8922078706262373,
+  "hd95": 170.36328393418603,
+  "asd": 90.84392143718111,
+  "dice_benign": 0.11597159546718988,
+  "dice_malignant": 0.14310871492947097
+}
+wrote /mnt/workspace/busi_p0/results/prompt_medsam.json

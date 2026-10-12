@@ -1,0 +1,21 @@
+[submodule "code/Attention-Gated-Networks"]
+	path = code/Attention-Gated-Networks
+	url = https://github.com/ozan-oktay/Attention-Gated-Networks.git
+[submodule "code/BUSSAM"]
+	path = code/BUSSAM
+	url = https://github.com/bscs12/BUSSAM.git
+[submodule "code/MedSAM"]
+	path = code/MedSAM
+	url = https://github.com/bowang-lab/MedSAM.git
+[submodule "code/Pytorch-UNet"]
+	path = code/Pytorch-UNet
+	url = https://github.com/milesial/Pytorch-UNet.git
+[submodule "code/segment-anything"]
+	path = code/segment-anything
+	url = https://github.com/facebookresearch/segment-anything.git
+[submodule "code/TransUNet"]
+	path = code/TransUNet
+	url = https://github.com/Beckschen/TransUNet.git
+[submodule "code/UNetPlusPlus"]
+	path = code/UNetPlusPlus
+	url = https://github.com/MrGiovanni/UNetPlusPlus.git
