@@ -1,0 +1,3 @@
+===== P1-1: U-Net / AttU-Net x 3 losses x 3 seeds (150 ep, patience 15) =====
+SKIP p1_unet_seed0.json
+===== P1-2: UNet++ x {ce_dice,tversky} x 3 seeds (256 RGB) =====

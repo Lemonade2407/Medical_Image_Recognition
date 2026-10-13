@@ -217,6 +217,25 @@ def main():
                 A(f"| {r['method']} | {g('baseline')} | {g('A1_postproc')} | {g('A2_tta')} | "
                   f"{g('A3_threshold')} | {g('A2+A1+A3')} | {r['best_variant'] or '—'} |")
             A("")
+        p1 = load("p1_summary.json")
+        if p1 and p1.get("rows"):
+            A("### 7.3 P1　充分训练对照（24 → 150 epoch + 早停）\n")
+            A("> 检验“Boundary 有害”“Tversky 对 UNet++ 有害”是否只是**欠拟合**造成的；延长训练至 150 epoch + 验证集早停(patience 15) + 最优轮回滚。\n")
+            A("| 模型 | 损失 | 24ep | 150ep | Δ | 150ep 最优轮到 | 结论 |")
+            A("|---|---|---|---|---|---|---|")
+
+            def _s(d, sd, n):
+                if d is None:
+                    return "—"  # noqa
+                return f"{d:.4f}±{sd:.4f}" if n > 1 else f"{d:.4f}"
+            for r in p1["rows"]:
+                if r["d24"] is None and r["d150"] is None:
+                    continue
+                A(f"| {r['model']} | {r['loss']} | {_s(r['d24'], r['std24'], r['n24'])} | "
+                  f"{_s(r['d150'], r['std150'], r['n150'])} | "
+                  f"{('%+.4f' % r['delta']) if r['delta'] is not None else '—'} | "
+                  f"{r['epochs'] or '—'} | {r['note']} |")
+            A("")
         A("> 结论 **B**：Tversky 对**小模型**有效（U-Net +0.036、AttU-Net +0.015），对 **UNet++ 反而有害**（−0.023），对 TransUNet 略正（+0.014）；**Boundary 一致有害**。")
         A("> 结论 **A（A2+A1+A3）**：对**全部 4 个监督式**稳定有效（**+0.011~0.037**）且 HD95 普遍下降；**对提示式无效甚至有害**（提示式输出本就干净，面积门限会误删小病灶）。")
         A("> **全局最优**：**TransUNet + tversky + A3 = 0.6992**（HD95 105，监督式最佳）。\n")

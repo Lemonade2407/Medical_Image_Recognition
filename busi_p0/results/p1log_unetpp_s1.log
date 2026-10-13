@@ -1,0 +1,5 @@
+[unetpp seed=1 size=256 gray=False ep=150]
+  ep01 loss=1.2607 val_dice=0.0774 (74.5s)
+  ep02 loss=1.1471 val_dice=0.1767 (35.2s)
+  ep03 loss=1.0898 val_dice=0.3961 (35.5s)
+  ep04 loss=1.0385 val_dice=0.4342 (35.4s)

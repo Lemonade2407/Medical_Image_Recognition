@@ -197,6 +197,7 @@ def train(args, records_train, records_val):
                        persistent_workers=nw > 0, pin_memory=True)
 
     best_dice, best_state, hist = -1.0, None, []
+    bad = 0
     for ep in range(args.epochs):
         model.train()
         t0 = time.time()
@@ -223,7 +224,14 @@ def train(args, records_train, records_val):
         if vd > best_dice:
             best_dice = vd
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+            bad = 0
+        else:
+            bad += 1
         print(f"  ep{ep+1:02d} loss={tot/len(tr):.4f} val_dice={vd:.4f} ({time.time()-t0:.1f}s)")
+        es = getattr(args, "early_stop", 0)
+        if es and bad >= es and (ep + 1) >= getattr(args, "min_epochs", 0):
+            print(f"  [early stop] no val improvement for {bad} epochs at ep{ep+1}")
+            break
 
     if best_state is not None:
         model.load_state_dict(best_state)
@@ -308,6 +316,8 @@ def main():
     ap.add_argument("--save-ckpt", action="store_true",
                     help="save the best-val weights so eval_postproc.py can reuse them")
     ap.add_argument("--tag", default="")
+    ap.add_argument("--early-stop", type=int, default=0, help="patience epochs on val Dice (0=off)")
+    ap.add_argument("--min-epochs", type=int, default=0, help="do not early-stop before this epoch")
     args = ap.parse_args()
     args.gray = args.gray or not args.rgb
     if args.rgb:
