@@ -1,0 +1,22 @@
+[bussam] val lesion=98  test lesion=96
+/mnt/workspace/code/BUSSAM/models/segment_anything_samus/build_sam_us.py:100: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(f)
+/mnt/workspace/busi_p0/src/eval_prompt_postproc.py:111: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(ck, map_location="cpu")
+val probs ...
+val probs (TTA) ...
+A3 thresholds (val): raw=0.55 (0.8294)  +pp=0.5 (0.8310)  TTA raw=0.5
+test probs ...
+test probs (TTA) ...
+
+variant            dice      iou     prec   recall     hd95
+baseline         0.8364   0.7376   0.8914   0.8560     35.2
+A3_threshold     0.8367   0.7370   0.9028   0.8383     35.2
+A1_postproc      0.8363   0.7375   0.8915   0.8557     35.2
+A1+A3            0.8363   0.7375   0.8915   0.8557     35.2
+A2_tta           0.8411   0.7435   0.9044   0.8309     35.5
+A2+A1            0.8404   0.7425   0.9043   0.8287     35.6
+A2+A3            0.8411   0.7435   0.9044   0.8309     35.5
+A2+A1+A3         0.8404   0.7425   0.9043   0.8287     35.6
+
+wrote /mnt/workspace/busi_p0/results/postproc_prompt_bussam.json

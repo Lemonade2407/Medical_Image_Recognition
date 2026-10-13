@@ -24,6 +24,13 @@ def f(x, n=4):
     return "〔待回填〕" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{x:.{n}f}"
 
 
+def fms(d):
+    """Format a {'mean','std'} stats dict."""
+    if not d:
+        return "—"
+    return f"{d['mean']:.4f}±{d['std']:.4f}" if d.get("std") else f"{d['mean']:.4f}"
+
+
 def main():
     ms = load("multiseed_summary.json")
     unetpp = load("unetpp_s256rgb_e24_seed0.json")
@@ -184,6 +191,35 @@ def main():
     concl.append("- 提示式与监督式的评价口径已统一到同一测试集/同一指标，但提示条件不同（提示式需 1 个 GT 点，监督式全自动），适用场景互补。")
     L.extend(concl)
     A("")
+
+    # ---- 7. A/B optimisation ----
+    ab = load("ab_summary.json")
+    if ab:
+        A("## 七、A/B 优化结果（统一协议）\n")
+        A("> **B** = 损失函数重训（Tversky α=0.3/β=0.7、Boundary；3 种子）；")
+        A("> **A** = 推理侧零训练成本项：**A1** 最大连通域+填洞+面积阈值、**A2** 多尺度+翻转 TTA、**A3** 验证集选阈值。\n")
+        if ab.get("supervised"):
+            A("### 7.1 监督式\n")
+            A("| 模型 | 损失(B) | B: Dice | A2 TTA | A3 阈值 | A2+A1+A3 | 最优变体 |")
+            A("|---|---|---|---|---|---|---|")
+            for r in ab["supervised"]:
+                a = r["a"]
+                A(f"| {r['model']} | {r['loss']} | {fms(r['b_dice'])} | {fms(a['A2_tta']['dice'])} | "
+                  f"{fms(a['A3_threshold']['dice'])} | {fms(a['A2+A1+A3']['dice'])} | {r['best_variant'] or '—'} |")
+            A("")
+        if ab.get("prompt"):
+            A("### 7.2 提示式（仅 A，无 B）\n")
+            A("| 方法 | baseline | A1 后处理 | A2 TTA | A3 阈值 | A2+A1+A3 | 最优变体 |")
+            A("|---|---|---|---|---|---|---|")
+            for r in ab["prompt"]:
+                a = r["a"]
+                g = lambda v: f"{a[v]['dice']:.4f}" if v in a else "—"  # noqa
+                A(f"| {r['method']} | {g('baseline')} | {g('A1_postproc')} | {g('A2_tta')} | "
+                  f"{g('A3_threshold')} | {g('A2+A1+A3')} | {r['best_variant'] or '—'} |")
+            A("")
+        A("> 结论 **B**：Tversky 对**小模型**有效（U-Net +0.036、AttU-Net +0.015），对 **UNet++ 反而有害**（−0.023），对 TransUNet 略正（+0.014）；**Boundary 一致有害**。")
+        A("> 结论 **A（A2+A1+A3）**：对**全部 4 个监督式**稳定有效（**+0.011~0.037**）且 HD95 普遍下降；**对提示式无效甚至有害**（提示式输出本就干净，面积门限会误删小病灶）。")
+        A("> **全局最优**：**TransUNet + tversky + A3 = 0.6992**（HD95 105，监督式最佳）。\n")
 
     # ---- appendix ----
     A("## 附录 A：重跑可得性与环境\n")

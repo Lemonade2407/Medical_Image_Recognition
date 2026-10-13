@@ -1,0 +1,20 @@
+[sam] val lesion=98  test lesion=96
+/mnt/workspace/code/segment-anything/segment_anything/build_sam.py:105: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(f)
+val probs ...
+val probs (TTA) ...
+A3 thresholds (val): raw=0.4 (0.6207)  +pp=0.4 (0.6207)  TTA raw=0.35
+test probs ...
+test probs (TTA) ...
+
+variant            dice      iou     prec   recall     hd95
+baseline         0.6034   0.4975   0.4838   0.7005     81.0
+A3_threshold     0.6020   0.4996   0.4307   0.7521     86.5
+A1_postproc      0.5871   0.4777   0.4843   0.6875    134.0
+A1+A3            0.5928   0.4918   0.4331   0.7512    130.2
+A2_tta           0.5946   0.4864   0.4754   0.6743     81.3
+A2+A1            0.5769   0.4665   0.4725   0.6642    131.1
+A2+A3            0.5929   0.4884   0.4244   0.7618     97.9
+A2+A1+A3         0.5809   0.4820   0.3925   0.7911    143.6
+
+wrote /mnt/workspace/busi_p0/results/postproc_prompt_sam.json

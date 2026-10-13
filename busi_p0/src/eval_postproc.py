@@ -110,6 +110,8 @@ def main():
     ap.add_argument("--gray", action="store_true")
     ap.add_argument("--rgb", action="store_true")
     ap.add_argument("--tta", action="store_true", help="also evaluate A2 (multi-scale + hflip)")
+    ap.add_argument("--scales", default="0.75,1.0,1.25",
+                    help="TTA scales; use 1.0 (flip-only) for fixed-pos-embed models like TransUNet")
     ap.add_argument("--min-area", type=float, default=0.001, help="A1 area gate (fraction)")
     ap.add_argument("--steps", type=float, default=0.05)
     args = ap.parse_args()
@@ -121,7 +123,8 @@ def main():
     sd = torch.load(args.ckpt, map_location=device)
     model.load_state_dict(sd["state_dict"] if "state_dict" in sd else sd)
     model.eval()
-    print(f"loaded {args.ckpt}  (loss={sd.get('loss') if isinstance(sd, dict) else '?'})")
+    loss_name = sd.get("loss", "ce_dice") if isinstance(sd, dict) else "ce_dice"
+    print(f"loaded {args.ckpt}  (loss={loss_name})")
 
     index = build_index()
     byname = {it["name"]: it for it in index}
@@ -129,8 +132,10 @@ def main():
     rva = [byname[n] for n in split["val"]]
     rte = [byname[n] for n in split["test"]]
 
+    scales = tuple(float(x) for x in str(args.scales).split(",") if x.strip())
+
     def probs_gts(records, tta):
-        P = [prob_map_original_res(model, it, args.size, args.gray, device, tta=tta)
+        P = [prob_map_original_res(model, it, args.size, args.gray, device, tta=tta, scales=scales)
              for it in records]
         G = [load_mask(it) for it in records]
         C = [it["cls"] for it in records]
@@ -194,6 +199,8 @@ def main():
                agg["recall"], agg["hd95"], agg["asd"]))
 
     tag = f"postproc_{args.model}_s{args.size}{'g' if args.gray else 'rgb'}"
+    if loss_name != "ce_dice":
+        tag += f"_{loss_name}"
     os.makedirs(RESULTS, exist_ok=True)
     out = os.path.join(RESULTS, f"{tag}_seed{args.seed}.json")
     with open(out, "w") as f:

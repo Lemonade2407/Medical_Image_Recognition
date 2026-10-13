@@ -1,0 +1,21 @@
+[medsam] val lesion=98  test lesion=96
+Loading weights:   0%|          | 0/315 [00:00<?, ?it/s]Loading weights:  76%|███████▌  | 238/315 [00:00<00:00, 2358.34it/s]Loading weights: 100%|██████████| 315/315 [00:00<00:00, 2441.53it/s]
+The tied weights mapping and config for this model specifies to tie shared_image_embedding.positional_embedding to prompt_encoder.shared_embedding.positional_embedding, but both are present in the checkpoints, so we will NOT tie them. You should update the config with `tie_word_embeddings=False` to silence this warning
+The image processor of type `SamImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. 
+val probs ...
+val probs (TTA) ...
+A3 thresholds (val): raw=0.05 (0.1313)  +pp=0.05 (0.1287)  TTA raw=0.05
+test probs ...
+test probs (TTA) ...
+
+variant            dice      iou     prec   recall     hd95
+baseline         0.1096   0.0603   0.3566   0.0613    167.5
+A3_threshold     0.1234   0.0684   0.3434   0.0717    170.1
+A1_postproc      0.1054   0.0580   0.3599   0.0589    166.4
+A1+A3            0.1226   0.0679   0.3480   0.0699    167.8
+A2_tta           0.0107   0.0055   0.4918   0.0055    437.9
+A2+A1            0.0071   0.0037   0.4162   0.0038    669.5
+A2+A3            0.0158   0.0082   0.5255   0.0083    363.6
+A2+A1+A3         0.0106   0.0055   0.4967   0.0064    604.2
+
+wrote /mnt/workspace/busi_p0/results/postproc_prompt_medsam.json
