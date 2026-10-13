@@ -31,3 +31,6 @@ TEMP-FILE-STATION/
 # 二进制 / 压缩包
 *.so
 *.zip
+
+*.pt
+busi_p0/results/ckpt/
