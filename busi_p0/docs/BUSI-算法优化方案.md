@@ -70,3 +70,38 @@
 - 监督式 HD95：111~160 → **明显下降**（边界损失 + 后处理）
 - 蒸馏后轻量模型：逼近 BUSSAM 的 0.83，且推理成本低
 - 全自动管线（C2）：自动化 + 接近提示式上限
+
+## 五、实现与运行（A1/A2/A3、B1/B2 已落地）
+
+### 代码落点
+| 编号 | 实现位置 | 说明 |
+|---|---|---|
+| A1 | `src/busi_common.py` → `postprocess_mask()` | 填洞 → 最大连通域 → 面积闸门(<0.1% 判空) |
+| A2 | `src/eval_postproc.py` → `prob_map_original_res(tta=True)` | 尺度 {0.75,1.0,1.25} × {原图,hflip}，概率域平均 |
+| A3 | `src/eval_postproc.py` → `search_threshold()` | **仅用验证集**搜阈值，目标=病灶图平均 Dice |
+| B1 | `src/train_supervised.py` → `tversky_loss()` | `--loss tversky`，β=0.7 重罚假阴性（CE+Tversky） |
+| B2 | `src/train_supervised.py` → `boundary_loss()` | `--loss boundary`，CE+Dice+λ·Boundary（有向距离图） |
+
+### 运行
+```bash
+# B1 / B2：重训（基线 ce_dice 文件名保持不变，不会覆盖已有结果）
+python train_supervised.py --model unet --size 128 --gray --epochs 24 --seed 0 \
+       --loss tversky --save-ckpt
+python train_supervised.py --model unet --size 128 --gray --epochs 24 --seed 0 \
+       --loss boundary --lambda-bd 1.0 --save-ckpt
+
+# A1/A2/A3：在已有权重上推理，一次性输出全部组合
+python eval_postproc.py --ckpt results/ckpt/unet_s128g_e24_seed0.pt \
+       --model unet --size 128 --gray --tta
+```
+
+`eval_postproc.py` 输出 `results/postproc_<tag>_seed<k>.json`，内含：
+`baseline / A3 / A1 / A1+A3`（`--tta` 时再加 `A2 / A2+A1 / A2+A3 / A2+A1+A3`）各变体的
+`dice_lesion / iou_lesion / precision / recall / hd95 / asd`，以及验证集搜出的阈值。
+
+### 报告口径（重要）
+- **主表不改**：A1/A2/A3 属推理侧附加项，按协议单独成表，不并入"统一后处理=无"的主结果。
+- **阈值只用验证集**：A3 在 val 上搜索，测试集仅用于最终评分，避免调参泄漏。
+- **单变量原则**：B1 把 Dice 换成 Tversky；B2 在 CE+Dice 上加一项。每次只动一个变量，便于归因。
+- **判定门槛不变**：增益需 > 种子标准差(≈0.02) 且 Wilcoxon p<0.05 才算有效，建议每个 B 变体跑 3 种子。
+

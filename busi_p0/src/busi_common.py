@@ -129,6 +129,36 @@ def hd95_asd(pred, gt):
     return float(np.percentile(d, 95)), float(d.mean())
 
 
+# --------------------------------------------------------------------------- #
+# Inference-side add-on (A1): post-processing
+# --------------------------------------------------------------------------- #
+def postprocess_mask(pred, min_area_ratio=0.001):
+    """A1: largest connected component + hole filling + area gate.
+
+    Keeps the biggest connected component, fills its interior holes, and drops
+    the result entirely if it covers less than `min_area_ratio` of the image.
+
+    Rationale: stray speckle blobs far from the lesion dominate the 95th
+    percentile of the surface distance (HD95/ASD), while tiny specks on normal
+    images drive the false-positive rate. This is an INFERENCE-SIDE add-on and
+    is reported separately from the main (no-post-processing) table.
+    """
+    from scipy import ndimage
+    pred = np.asarray(pred).astype(bool)
+    if not pred.any():
+        return pred
+    filled = ndimage.binary_fill_holes(pred)
+    labels, n = ndimage.label(filled)
+    if n == 0:
+        return np.zeros_like(pred)
+    areas = np.bincount(labels.ravel())
+    areas[0] = 0  # background
+    keep = labels == int(areas.argmax())
+    if keep.sum() < max(1, int(min_area_ratio * pred.size)):
+        return np.zeros_like(pred)
+    return keep
+
+
 def per_image_metrics(pred, gt):
     """All metrics for one image at original resolution. pred/gt: HxW boolean."""
     tp, fp, fn, tn = confusion(pred, gt)

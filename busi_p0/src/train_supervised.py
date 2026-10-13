@@ -93,15 +93,73 @@ def ce_dice_loss(logits, target):
     return ce + dice
 
 
-def forward_loss(model, x, y):
+def tversky_loss(logits, target, alpha=0.3, beta=0.7):
+    """B1: Tversky loss. alpha weights false positives, beta false negatives.
+
+    With beta > alpha (0.3 / 0.7) missing lesion pixels cost more than over-
+    predicting, which trades precision for recall -- the documented症结 of the
+    supervised models (recall 0.715 vs precision 0.836).
+    """
+    if target.dim() == 4:
+        target = target.squeeze(1)
+    prob = F.softmax(logits, 1)[:, 1]
+    tgt = (target > 0.5).float()
+    tp = (prob * tgt).sum()
+    fp = (prob * (1 - tgt)).sum()
+    fn = ((1 - prob) * tgt).sum()
+    tversky_index = (tp + 1.0) / (tp + alpha * fp + beta * fn + 1.0)
+    return 1.0 - tversky_index
+
+
+def _signed_distance(gt):
+    """Signed distance map of a binary mask: negative inside, positive outside."""
+    from scipy import ndimage
+    inside = ndimage.distance_transform_edt(gt).astype(np.float32)
+    outside = ndimage.distance_transform_edt(~gt).astype(np.float32)
+    return outside - inside  # inside -> negative, outside -> positive
+
+
+def boundary_loss(logits, target):
+    """B2: Boundary loss (Kervadec et al.).
+
+    Aligns the foreground probability with a signed distance map of the GT, so
+    the contour -- not the overlapping area -- is optimised directly. Dice is
+    insensitive to uniform boundary shift; this term is not.
+    """
+    if target.dim() == 4:
+        target = target.squeeze(1)
+    prob = F.softmax(logits, 1)[:, 1]
+    dms = []
+    for i in range(target.shape[0]):
+        gt = target[i].detach().cpu().numpy() > 0.5
+        if gt.any() and not gt.all():
+            dms.append(_signed_distance(gt))
+        else:  # empty (normal images) or degenerate -> no boundary signal
+            dms.append(np.zeros_like(gt, dtype=np.float32))
+    dm = torch.from_numpy(np.stack(dms)).to(prob.device)
+    return (prob * dm).mean()
+
+
+def loss_term(logits, target, loss_name="ce_dice", lambda_bd=1.0):
+    """Term for one output head. Baseline is CE+Dice; each option swaps/adds one
+    component so the ablation changes a single variable at a time."""
+    tgt = target.squeeze(1) if target.dim() == 4 else target
+    if loss_name == "tversky":       # B1: Dice -> Tversky
+        return F.cross_entropy(logits, tgt.long()) + tversky_loss(logits, tgt)
+    if loss_name == "boundary":      # B2: CE+Dice + lambda * Boundary
+        return ce_dice_loss(logits, tgt) + lambda_bd * boundary_loss(logits, tgt)
+    return ce_dice_loss(logits, tgt)
+
+
+def forward_loss(model, x, y, loss_name="ce_dice", lambda_bd=1.0):
     out = model(x)
     if isinstance(out, (list, tuple)):
         loss = 0.0
         for o in out:
             o = F.interpolate(o, size=y.shape[-2:], mode="bilinear", align_corners=False)
-            loss = loss + ce_dice_loss(o, y)
+            loss = loss + loss_term(o, y, loss_name, lambda_bd)
         return loss / len(out), out[-1]
-    return ce_dice_loss(out, y), out
+    return loss_term(out, y, loss_name, lambda_bd), out
 
 
 @torch.no_grad()
@@ -146,7 +204,7 @@ def train(args, records_train, records_val):
         for x, y in dl_tr:
             x, y = x.to(device), y.to(device)
             opt.zero_grad()
-            loss, _ = forward_loss(model, x, y)
+            loss, _ = forward_loss(model, x, y, args.loss, args.lambda_bd)
             loss.backward()
             opt.step()
             tot += loss.item() * x.size(0)
@@ -244,6 +302,11 @@ def main():
     ap.add_argument("--gray", action="store_true")
     ap.add_argument("--rgb", action="store_true")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--loss", default="ce_dice", choices=["ce_dice", "tversky", "boundary"],
+                    help="ce_dice=baseline; tversky=B1; boundary=B2")
+    ap.add_argument("--lambda-bd", type=float, default=1.0, help="B2 weight on the boundary term")
+    ap.add_argument("--save-ckpt", action="store_true",
+                    help="save the best-val weights so eval_postproc.py can reuse them")
     ap.add_argument("--tag", default="")
     args = ap.parse_args()
     args.gray = args.gray or not args.rgb
@@ -265,9 +328,12 @@ def main():
     agg = aggregate(per)
 
     tag = args.tag or f"{args.model}_s{args.size}{'g' if args.gray else 'rgb'}_e{args.epochs}"
+    if args.loss != "ce_dice":          # keep baseline filenames unchanged
+        tag += f"_{args.loss}"
     out = {
         "model": args.model, "seed": args.seed, "size": args.size, "gray": args.gray,
         "epochs": args.epochs, "batch": args.batch, "lr": args.lr,
+        "loss": args.loss, "lambda_bd": args.lambda_bd,
         "params": n_par, "best_val_dice": best_val,
         "device": str(device), "torch": torch.__version__,
         "cuda": torch.version.cuda if torch.cuda.is_available() else None,
@@ -278,6 +344,15 @@ def main():
     path = os.path.join(RESULTS, f"{tag}_seed{args.seed}.json")
     with open(path, "w") as f:
         json.dump(out, f, indent=2)
+
+    if args.save_ckpt:
+        ckpt_dir = os.path.join(RESULTS, "ckpt")
+        os.makedirs(ckpt_dir, exist_ok=True)
+        ck = os.path.join(ckpt_dir, f"{tag}_seed{args.seed}.pt")
+        torch.save({"model": args.model, "size": args.size, "gray": args.gray,
+                    "loss": args.loss, "state_dict": model.state_dict()}, ck)
+        print("wrote", ck)
+
     print("params:", f"{n_par/1e6:.3f}M")
     print("TEST  dice_lesion=%.4f  miou=%.4f  prec=%.4f  recall=%.4f  hd95=%.1f  asd=%.1f" %
           (agg["dice_lesion"], agg["miou_hist"], agg["precision"], agg["recall"], agg["hd95"], agg["asd"]))
