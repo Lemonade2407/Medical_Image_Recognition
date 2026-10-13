@@ -275,6 +275,8 @@ def main():
         "agg": agg, "per_image": per, "history": hist,
     }
     os.makedirs(RESULTS, exist_ok=True)
+    ckpt_path = os.path.join(RESULTS, f"{tag}_seed{args.seed}.pth")
+    torch.save(model.state_dict(), ckpt_path)
     path = os.path.join(RESULTS, f"{tag}_seed{args.seed}.json")
     with open(path, "w") as f:
         json.dump(out, f, indent=2)
