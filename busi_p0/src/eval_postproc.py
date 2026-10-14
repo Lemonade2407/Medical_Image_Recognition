@@ -114,6 +114,7 @@ def main():
                     help="TTA scales; use 1.0 (flip-only) for fixed-pos-embed models like TransUNet")
     ap.add_argument("--min-area", type=float, default=0.001, help="A1 area gate (fraction)")
     ap.add_argument("--steps", type=float, default=0.05)
+    ap.add_argument("--out-tag", default="", help="override the output tag (e.g. p1_unet_tversky)")
     args = ap.parse_args()
     args.gray = args.gray or not args.rgb
 
@@ -198,8 +199,8 @@ def main():
               (name, agg["dice_lesion"], agg["iou_lesion"], agg["precision"],
                agg["recall"], agg["hd95"], agg["asd"]))
 
-    tag = f"postproc_{args.model}_s{args.size}{'g' if args.gray else 'rgb'}"
-    if loss_name != "ce_dice":
+    tag = args.out_tag or f"postproc_{args.model}_s{args.size}{'g' if args.gray else 'rgb'}"
+    if not args.out_tag and loss_name != "ce_dice":
         tag += f"_{loss_name}"
     os.makedirs(RESULTS, exist_ok=True)
     out = os.path.join(RESULTS, f"{tag}_seed{args.seed}.json")
