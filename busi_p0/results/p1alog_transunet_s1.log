@@ -1,0 +1,19 @@
+/mnt/workspace/busi_p0/src/eval_postproc.py:124: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(args.ckpt, map_location=device)
+loaded /mnt/workspace/busi_p0/results/p1_transunet_seed1.pth  (loss=ce_dice)
+val  n=118  computing probabilities ...
+A3 thresholds (val): raw=0.05 (dice 0.7295), with-postproc=0.05 (dice 0.7357)
+A3 thresholds (val, TTA): raw=0.2, with-postproc=0.2
+test n=116  computing probabilities ...
+
+variant            dice      iou     prec   recall    hd95     asd
+baseline         0.7096   0.6264   0.8892   0.7197   109.6    79.9
+A3_threshold     0.7247   0.6339   0.7912   0.8180   101.7    68.7
+A1_postproc      0.7031   0.6220   0.8996   0.7151   118.6    89.6
+A1+A3            0.7211   0.6326   0.8065   0.8141   104.8    77.5
+A2_tta           0.7072   0.6280   0.8937   0.7238   112.7    82.3
+A2+A1            0.6989   0.6219   0.9027   0.7213   119.1    90.1
+A2+A3            0.7332   0.6500   0.8334   0.7826    98.9    69.2
+A2+A1+A3         0.7283   0.6456   0.8455   0.7810   102.2    73.1
+
+wrote /mnt/workspace/busi_p0/results/postproc_p1_transunet_s256rgb_seed1.json

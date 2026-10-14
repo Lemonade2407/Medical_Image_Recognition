@@ -1,0 +1,20 @@
+to run: 24   parallelism=4
+=== summarize ===
+# P1 权重 + A 组（后处理 / TTA / 阈值）
+
+> 在 150 epoch（+早停）的权重上叠加推理侧 A 组，检验 A 组在**充分训练**下是否仍然有效。
+> 与 24ep 的 A 组（`results/ab_summary.md`）对照。
+
+| 模型 | 损失 | P1 baseline | P1+A1 | P1+A2 | P1+A3 | P1+A2+A1+A3 | 最优变体 | Δ(A) | HD95(base→best) |
+|---|---|---|---|---|---|---|---|---|---|
+| U-Net | ce_dice | 0.6875±0.0418 | — | — | — | — | — | — | — |
+| U-Net | tversky | 0.6966±0.0207 | — | — | — | — | — | — | — |
+| U-Net | boundary | 0.6210±0.0514 | — | — | — | — | — | — | — |
+| Attention U-Net | ce_dice | 0.6689±0.0342 | — | — | — | — | — | — | — |
+| Attention U-Net | tversky | 0.6712±0.0031 | — | — | — | — | — | — | — |
+| Attention U-Net | boundary | 0.6073±0.0241 | — | — | — | — | — | — | — |
+| UNet++ | ce_dice | 0.6429±0.0327 | — | — | — | — | — | — | — |
+| UNet++ | tversky | 0.6470±0.0106 | — | — | — | — | — | — | — |
+
+wrote /mnt/workspace/busi_p0/results/p1a_summary.md
+P1A DONE

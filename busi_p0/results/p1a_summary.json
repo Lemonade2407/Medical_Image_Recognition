@@ -1,0 +1,124 @@
+{
+  "rows": [
+    {
+      "model": "unet",
+      "label": "U-Net",
+      "loss": "ce_dice",
+      "base_mean": 0.6875463927948609,
+      "best": "A2+A1+A3",
+      "best_mean": 0.6993275243539051,
+      "delta": 0.011781131559044256,
+      "hd95_base": 114.37648033096423,
+      "hd95_best": 108.08121108949938,
+      "n": 3
+    },
+    {
+      "model": "unet",
+      "label": "U-Net",
+      "loss": "tversky",
+      "base_mean": 0.6965584582820975,
+      "best": "baseline",
+      "best_mean": 0.697630126733222,
+      "delta": 0.0010716684511244967,
+      "hd95_base": 120.46155367243755,
+      "hd95_best": 120.46155367243755,
+      "n": 3
+    },
+    {
+      "model": "unet",
+      "label": "U-Net",
+      "loss": "boundary",
+      "base_mean": 0.6210290633006049,
+      "best": "A2+A1+A3",
+      "best_mean": 0.6414309474811462,
+      "delta": 0.02040188418054123,
+      "hd95_base": 169.58930102860975,
+      "hd95_best": 132.0346933709448,
+      "n": 3
+    },
+    {
+      "model": "attunet",
+      "label": "Attention U-Net",
+      "loss": "ce_dice",
+      "base_mean": 0.6688953579165,
+      "best": "A2+A1+A3",
+      "best_mean": 0.6784018723558857,
+      "delta": 0.00950651443938566,
+      "hd95_base": 127.94387691366411,
+      "hd95_best": 120.78939334597924,
+      "n": 3
+    },
+    {
+      "model": "attunet",
+      "label": "Attention U-Net",
+      "loss": "tversky",
+      "base_mean": 0.6711608975018842,
+      "best": "A2_tta",
+      "best_mean": 0.6721298654762796,
+      "delta": 0.000968967974395385,
+      "hd95_base": 124.91446999394581,
+      "hd95_best": 132.42545577187505,
+      "n": 3
+    },
+    {
+      "model": "attunet",
+      "label": "Attention U-Net",
+      "loss": "boundary",
+      "base_mean": 0.6073361581470226,
+      "best": "A2+A1+A3",
+      "best_mean": 0.6274267313077239,
+      "delta": 0.020090573160701286,
+      "hd95_base": 169.792447724289,
+      "hd95_best": 143.9109910338851,
+      "n": 3
+    },
+    {
+      "model": "unetpp",
+      "label": "UNet++",
+      "loss": "ce_dice",
+      "base_mean": 0.6429181602838311,
+      "best": "A2+A1+A3",
+      "best_mean": 0.6545023918255158,
+      "delta": 0.011584231541684753,
+      "hd95_base": 131.33495154320727,
+      "hd95_best": 136.38226148390274,
+      "n": 3
+    },
+    {
+      "model": "unetpp",
+      "label": "UNet++",
+      "loss": "tversky",
+      "base_mean": 0.646975309345681,
+      "best": "A2_tta",
+      "best_mean": 0.6676962311700886,
+      "delta": 0.020720921824407545,
+      "hd95_base": 134.54632488222,
+      "hd95_best": 137.50195323648916,
+      "n": 3
+    },
+    {
+      "model": "transunet",
+      "label": "TransUNet",
+      "loss": "ce_dice",
+      "base_mean": 0.6999616592365171,
+      "best": "A2+A1+A3",
+      "best_mean": 0.7086699046123788,
+      "delta": 0.008708245375861678,
+      "hd95_base": 106.84858654242167,
+      "hd95_best": 96.23010532123784,
+      "n": 3
+    },
+    {
+      "model": "transunet",
+      "label": "TransUNet",
+      "loss": "tversky",
+      "base_mean": 0.6730495234542911,
+      "best": "A2+A1+A3",
+      "best_mean": 0.6930372876075542,
+      "delta": 0.019987764153263088,
+      "hd95_base": 121.1360017399274,
+      "hd95_best": 112.85168313485413,
+      "n": 3
+    }
+  ]
+}
