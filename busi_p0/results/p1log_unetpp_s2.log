@@ -3,3 +3,4 @@
   ep02 loss=1.1000 val_dice=0.3104 (34.8s)
   ep03 loss=1.0099 val_dice=0.1908 (34.9s)
   ep04 loss=0.9760 val_dice=0.4901 (35.1s)
+  ep05 loss=0.9418 val_dice=0.5549 (35.2s)
