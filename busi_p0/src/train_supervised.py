@@ -16,7 +16,6 @@ import argparse
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import functional as TF
@@ -24,7 +23,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from busi_common import (build_index, load_split, orig_size, RESULTS, LESION_CLASSES,
-                         dice_binary, per_image_metrics)
+                         per_image_metrics)
 from models import build_model
 
 
@@ -170,6 +169,15 @@ def predict_logits(model, x):
     return out
 
 
+def prob_to_original(prob, item):
+    """(1,h,w) foreground probability at model resolution -> (H,W) at original
+    resolution. This is the single resize rule shared with eval_postproc, so the
+    main table and the A-group baseline are computed on the same path."""
+    w, h = orig_size(item)
+    return F.interpolate(prob[:, None], size=(h, w),
+                         mode="bilinear", align_corners=False)[0, 0]
+
+
 def dice_at_model_res(logits, y):
     pred = logits.argmax(1)
     pred = (pred == 1).float()
@@ -191,10 +199,11 @@ def train(args, records_train, records_val):
     tr = InMemoryBUSI(records_train, args.size, args.gray, True)
     va = InMemoryBUSI(records_val, args.size, args.gray, False)
     nw = getattr(args, "workers", 4)
+    nw_va = max(nw // 2, 0)
     dl_tr = DataLoader(tr, batch_size=args.batch, shuffle=True, num_workers=nw,
                        persistent_workers=nw > 0, pin_memory=True, drop_last=False)
-    dl_va = DataLoader(va, batch_size=args.batch, shuffle=False, num_workers=max(nw // 2, 0),
-                       persistent_workers=nw > 0, pin_memory=True)
+    dl_va = DataLoader(va, batch_size=args.batch, shuffle=False, num_workers=nw_va,
+                       persistent_workers=nw_va > 0, pin_memory=True)
 
     best_dice, best_state, hist = -1.0, None, []
     bad = 0
@@ -252,8 +261,8 @@ def evaluate_original_res(model, records, size, gray, device):
             a = np.asarray(im, dtype=np.float32)
             a = (a - a.mean((0, 1), keepdims=True)) / (a.std((0, 1), keepdims=True) + 1e-8)
         x = torch.from_numpy(a).permute(2, 0, 1)[None].to(device)
-        logits = predict_logits(model, x)
-        pred = logits.argmax(1)[0].cpu().numpy().astype(np.uint8)
+        prob = F.softmax(predict_logits(model, x), 1)[:, 1]
+        pred_o = prob_to_original(prob, it).cpu().numpy() > 0.5
 
         w, h = orig_size(it)
         gt = np.zeros((h, w), dtype=bool)
@@ -262,7 +271,6 @@ def evaluate_original_res(model, records, size, gray, device):
             if arr.shape != (h, w):
                 arr = np.array(Image.open(mp).convert("L").resize((w, h), Image.NEAREST))
             gt |= (arr > 127)
-        pred_o = np.array(Image.fromarray(pred * 255).resize((w, h), Image.NEAREST)) > 127
 
         m = per_image_metrics(pred_o, gt)
         m["name"] = it["name"]
@@ -277,7 +285,7 @@ def aggregate(per):
     tp = sum(m["tp"] for m in per); fp = sum(m["fp"] for m in per)
     fn = sum(m["fn"] for m in per); tn = sum(m["tn"] for m in per)
     # pixel-histogram mIoU (includes background)
-    iou_bg = tn / (tn + fp + 1e-7)
+    iou_bg = tn / (tn + fp + fn + 1e-7)
     iou_fg = tp / (tp + fn + fp + 1e-7)
     agg = {
         "n_test": len(per), "n_lesion": len(lesion), "n_normal": len(normal),
@@ -351,8 +359,10 @@ def main():
         "agg": agg, "per_image": per, "history": hist,
     }
     os.makedirs(RESULTS, exist_ok=True)
+    payload = {"model": args.model, "size": args.size, "gray": args.gray,
+               "loss": args.loss, "state_dict": model.state_dict()}
     ckpt_path = os.path.join(RESULTS, f"{tag}_seed{args.seed}.pth")
-    torch.save(model.state_dict(), ckpt_path)
+    torch.save(payload, ckpt_path)
     path = os.path.join(RESULTS, f"{tag}_seed{args.seed}.json")
     with open(path, "w") as f:
         json.dump(out, f, indent=2)
@@ -361,8 +371,7 @@ def main():
         ckpt_dir = os.path.join(RESULTS, "ckpt")
         os.makedirs(ckpt_dir, exist_ok=True)
         ck = os.path.join(ckpt_dir, f"{tag}_seed{args.seed}.pt")
-        torch.save({"model": args.model, "size": args.size, "gray": args.gray,
-                    "loss": args.loss, "state_dict": model.state_dict()}, ck)
+        torch.save(payload, ck)
         print("wrote", ck)
 
     print("params:", f"{n_par/1e6:.3f}M")

@@ -28,8 +28,7 @@ def ms(v):
 
 def main():
     L = ["# P1 权重 + A 组（后处理 / TTA / 阈值）\n",
-         "> 在 150 epoch（+早停）的权重上叠加推理侧 A 组，检验 A 组在**充分训练**下是否仍然有效。",
-         "> 与 24ep 的 A 组（`results/ab_summary.md`）对照。\n",
+         "> 在 150 epoch（+早停）的权重上叠加推理侧 A 组，检验 A 组在**充分训练**下是否仍然有效。\n",
          "| 模型 | 损失 | P1 baseline | P1+A1 | P1+A2 | P1+A3 | P1+A2+A1+A3 | 最优变体 | Δ(A) | HD95(base→best) |",
          "|---|---|---|---|---|---|---|---|---|---|"]
     rows = []
@@ -56,7 +55,8 @@ def main():
                 if av[v] and np.mean(av[v]) > bv:
                     bv, best = float(np.mean(av[v])), v
             bm = float(np.mean(base)) if base else None
-            d = (bv - bm) if (best and bm is not None) else None
+            bm_a = float(np.mean(av["baseline"])) if av["baseline"] else bm
+            d = (bv - bm_a) if (best and bm_a is not None) else None
             hb = float(np.mean(hd["baseline"])) if hd["baseline"] else None
             hbest = float(np.mean(hd[best])) if (best and hd[best]) else None
             L.append(f"| {label} | {loss} | {ms(base)} | {ms(av['A1_postproc'])} | {ms(av['A2_tta'])} | "
@@ -64,8 +64,13 @@ def main():
                      f"{(('%+.4f' % d) if d is not None else '—')} | "
                      f"{(('%.1f→%.1f' % (hb, hbest)) if (hb is not None and hbest is not None) else '—')} |")
             rows.append({"model": model, "label": label, "loss": loss,
-                         "base_mean": bm, "best": best, "best_mean": bv if best else None,
+                         "base_mean": bm, "a_baseline_mean": bm_a,
+                         "best": best, "best_mean": bv if best else None,
                          "delta": d, "hd95_base": hb, "hd95_best": hbest,
+                         "variant_mean": {v: (float(np.mean(av[v])) if av[v] else None)
+                                          for v in A_VARIANTS},
+                         "variant_std": {v: (float(np.std(av[v], ddof=1)) if len(av[v]) > 1 else 0.0)
+                                         for v in A_VARIANTS},
                          "n": len(base)})
     with open(f"{RES}/p1a_summary.json", "w") as f:
         json.dump({"rows": rows}, f, indent=2, ensure_ascii=False)

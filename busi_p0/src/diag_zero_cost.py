@@ -13,7 +13,6 @@ import sys
 import json
 
 import numpy as np
-import torch
 from PIL import Image
 from scipy import ndimage
 import matplotlib
@@ -26,8 +25,6 @@ sys.path.insert(0, SRC)
 from busi_common import build_index, load_split, orig_size, load_mask, dice_binary  # noqa
 
 import eval_prompt_quality as epq  # reuse prompt-model helpers  # noqa
-
-SIZE_BINS = [(0, 200, "小 ≤200px"), (200, 1000, "中 200–1000px"), (1000, 10 ** 9, "大 >1000px")]
 
 
 # ============================ (1) FN decomposition ============================ #
@@ -96,7 +93,7 @@ def fn_decomposition(src_json, variant, tag):
 
 
 # ============================ (2) box-quality curve ============================ #
-def box_curve(recs):
+def box_curve(recs, sup_tag="postproc", viz_tag="viz"):
     predictor = epq.load_sam()
     mm, mp = epq.load_medsam()
 
@@ -118,8 +115,8 @@ def box_curve(recs):
         print("done", method)
 
     for tag, mname, size, gray, ck in [
-            ("unet", "unet", 128, True, f"{RES}/viz_unet_seed0.pth"),
-            ("unetpp", "unetpp", 256, False, f"{RES}/viz_unetpp_seed0.pth")]:
+            ("unet", "unet", 128, True, f"{RES}/{viz_tag}_unet_seed0.pth"),
+            ("unetpp", "unetpp", 256, False, f"{RES}/{viz_tag}_unetpp_seed0.pth")]:
         if not os.path.exists(ck):
             print("skip auto (no ckpt)", ck); continue
         fn = epq.sup_box_fn(mname, size, gray, ck)
@@ -143,6 +140,10 @@ def main():
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--part1-only", action="store_true", help="only the FN decomposition (no inference)")
+    ap.add_argument("--sup-tag", default="postproc",
+                    help="postproc JSON prefix (postproc=24ep, postproc_p1=150ep)")
+    ap.add_argument("--viz-tag", default="viz",
+                    help="checkpoint prefix for auto boxes (viz=24ep, p1=150ep)")
     args = ap.parse_args()
     byname = {it["name"]: it for it in build_index()}
     split = load_split()
@@ -150,8 +151,8 @@ def main():
 
     # ---------- (1) ----------
     decomp = {}
-    for tag, src, var in [("unet", f"{RES}/postproc_unet_s128g_seed0.json", "A2+A1+A3"),
-                          ("transunet", f"{RES}/postproc_transunet_s256rgb_seed0.json", "A2+A1+A3")]:
+    for tag, src, var in [("unet", f"{RES}/{args.sup_tag}_unet_s128g_seed0.json", "A2+A1+A3"),
+                          ("transunet", f"{RES}/{args.sup_tag}_transunet_s256rgb_seed0.json", "A2+A1+A3")]:
         d = fn_decomposition(src, var, tag)
         if d:
             decomp[tag] = d
@@ -178,7 +179,7 @@ def main():
     if args.part1_only:
         print("\n--part1-only: skipping box-quality curve")
         return
-    curve = box_curve(recs)
+    curve = box_curve(recs, args.sup_tag, args.viz_tag)
     with open(f"{RES}/diag_box_curve.json", "w") as f:
         json.dump(curve, f, indent=2)
     fig, ax = plt.subplots(figsize=(6, 4.5))

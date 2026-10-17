@@ -6,10 +6,12 @@ remainder method with a val-before-test tie-break, which reproduces the
 546/118/116 (test 65/31/20) composition of the original report exactly.
 """
 import os
+import sys
 import json
 import random
 from collections import defaultdict
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from busi_common import build_index, SPLITS, CLASSES
 
 SEED = 42

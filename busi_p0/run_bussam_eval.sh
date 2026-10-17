@@ -3,7 +3,7 @@
 cd /mnt/workspace/busi_p0
 PY=/mnt/workspace/busi_p0/.venv/bin/python
 for i in $(seq 1 240); do
-  if ls /mnt/workspace/code/BUSSAM/outputs/BUSSAM_*/checkpoints/BUSSAM_100.pth >/dev/null 2>&1; then
+  if ls /mnt/workspace/code/BUSSAM/outputs/BUSSAM_*/checkpoints/BUSSAM_*.pth >/dev/null 2>&1; then
     echo "training done at $(date)"; break
   fi
   sleep 30

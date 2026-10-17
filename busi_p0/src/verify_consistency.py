@@ -1,8 +1,10 @@
 """P0-1 verification: every method's per-image results cover exactly the frozen test set."""
 import os
+import sys
 import json
 import glob
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from busi_common import load_split, RESULTS, LESION_CLASSES
 
 
@@ -24,7 +26,7 @@ def main():
         if not per:
             continue
         names = {m["name"] for m in per}
-        is_prompt = os.path.basename(f).startswith("prompt_")
+        is_prompt = os.path.basename(f).startswith(("prompt_", "postproc_prompt_"))
         expected = test_lesion if is_prompt else test_all
         same = names == expected
         ok &= same

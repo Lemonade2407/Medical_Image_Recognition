@@ -24,11 +24,11 @@ import torch.nn.functional as F
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from busi_common import (build_index, load_split, orig_size, load_mask, RESULTS,
+from busi_common import (build_index, load_split, load_mask, RESULTS,
                          LESION_CLASSES, dice_binary, per_image_metrics,
                          postprocess_mask)
 from models import build_model
-from train_supervised import aggregate, predict_logits
+from train_supervised import aggregate, predict_logits, prob_to_original
 
 
 @torch.no_grad()
@@ -65,10 +65,7 @@ def prob_map_original_res(model, item, size, gray, device, tta=False,
                 n += 1
         prob = acc / n
 
-    w, h = orig_size(item)
-    prob_o = F.interpolate(prob[:, None], size=(h, w),
-                           mode="bilinear", align_corners=False)[0, 0]
-    return prob_o.cpu().numpy()
+    return prob_to_original(prob, item).cpu().numpy()
 
 
 def search_threshold(probs, gts, cls, use_pp, min_area, candidates):

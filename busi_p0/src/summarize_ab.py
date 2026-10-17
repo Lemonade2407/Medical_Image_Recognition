@@ -23,10 +23,6 @@ def load(p):
     return json.load(open(p)) if os.path.exists(p) else None
 
 
-def agg_of(rec):
-    return rec["variants"]["baseline"]["agg"]["dice_lesion"]
-
-
 def stats(vals):
     if not vals:
         return None

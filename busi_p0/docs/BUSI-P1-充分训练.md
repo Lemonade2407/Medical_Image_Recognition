@@ -12,7 +12,7 @@
 | 模型选择 | **回滚到验证集最优轮**（best-val rollback） |
 | 损失 | CE+Dice（基线）/ Tversky(α=0.3,β=0.7) / CE+Dice+Boundary(λ=1) |
 | 其余 | 优化器/增强/调度（`step_size=epochs//3`）与基线**完全一致**，仅轮数+早停不同 |
-| 范围 | U-Net / Attention U-Net × 3 损失；**UNet++ × {CE+Dice, Tversky}**（验证 UNet++ 的 Tversky 结论） |
+| 范围 | U-Net / Attention U-Net × 3 损失；**UNet++ / TransUNet × {CE+Dice, Tversky}** |
 | 新增代码 | `train_supervised.py` 的 `--early-stop` / `--min-epochs` |
 
 ## 二、主结果（测试集病灶 Dice，3 种子）
@@ -67,7 +67,7 @@
 
 ## 四、判据与结论
 
-**① 训练预算是主导因素。** 全部 8 个配置在延长训练后**一律提升**（Δ 均为正）；最优轮集中在 **29–81**，远大于原设定的 24 —— 说明 24 epoch 基线**严重欠拟合**。
+**① 训练预算主导（轻量模型）。** 10 个配置中 **9 个**在延长训练后提升（Δ **−0.023 ~ +0.074**）；最优轮集中在 **23–81**，远大于原设定的 24 —— 说明 24 epoch 基线**严重欠拟合**。唯一例外是 **TransUNet + Tversky（Δ −0.023）**，见 ③。
 
 **② “Boundary 有害”成立。** 150ep 下 boundary 仍明显低于 CE+Dice：unet -0.0665、attunet -0.0616 → 结论**未被推翻**。
 
@@ -78,10 +78,11 @@
 | unet | +0.0354 | +0.0090 | 保持 |
 | attunet | +0.0152 | +0.0023 | 保持 |
 | unetpp | -0.0227 | +0.0041 | 反转（原有害→现不劣） |
+| transunet | +0.0141 | -0.0269 | 仍偏差（符号反转） |
 
-→ 在充分训练下 **Tversky 全面 ≥ CE+Dice**，原“UNet++ 有害”系欠拟合假象。
+→ 在充分训练下 **Tversky 对轻量模型（U-Net / AttU-Net / UNet++）≥ CE+Dice**，原“UNet++ 有害”系欠拟合假象；但 **TransUNet 相反（−0.027）**，其最优轮仅 23、早早饱和后持续退化 —— 故结论应为**模型依赖**，而非普适。
 
-**④ 附带发现。** 150ep 的 U-Net（CE+Dice 0.6875 / Tversky 0.6966）已**追平** 24ep 的 TransUNet（0.6958）—— 监督式内部的“结构差距”同样被训练预算抹平。
+**④ 附带发现。** 150ep 的 U-Net（1.9M；CE+Dice 0.6875 / Tversky 0.6966）与 150ep 的 TransUNet（105M；CE+Dice 0.7000）仅差 0.003–0.013 —— 监督式内部的“结构差距”被训练预算抹平。
 
 ## 五、P1 权重 + A 组（后处理 / TTA / 验证集阈值）
 
@@ -114,14 +115,14 @@ python train_supervised.py --model unet --size 128 --gray --epochs 150 --seed 0 
 python summarize_p1.py      # -> results/p1_summary.{md,json}
 ```
 
-## 六、产物清单
+## 七、产物清单
 
 | 文件 | 说明 |
 |---|---|
-| `results/p1_*.json`（24 个） | 每个 (模型×损失×种子) 的测试结果 + 逐轮 history |
+| `results/p1_*.json`（30 个） | 每个 (模型×损失×种子) 的测试结果 + 逐轮 history |
 | `results/p1_summary.md` / `.json` | 24ep↔150ep 汇总 |
 | `results/p1log_*.log` | 训练日志（含 early-stop 触发轮） |
 | `src/run_p1_par.sh` / `run_p1_2.sh` | 重跑脚本（并行 / 串行） |
 | `src/summarize_p1.py` / `make_p1_doc.py` | 汇总与本文件生成器 |
 
-> 注：P1 只重训了 B 组（损失）；**未**在 P1 权重上再叠加 A 组（后处理/TTA/阈值）。若需要“P1+A”的组合结果，可另跑 `eval_postproc.py`。
+> 注：P1 只重训了 B 组（损失）；在 P1 权重上再叠加 A 组（后处理/TTA/阈值）的结果见 `results/p1a_summary.md`。

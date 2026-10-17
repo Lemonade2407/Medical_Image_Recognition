@@ -50,7 +50,7 @@ def main():
     A("| 模型选择 | **回滚到验证集最优轮**（best-val rollback） |")
     A("| 损失 | CE+Dice（基线）/ Tversky(α=0.3,β=0.7) / CE+Dice+Boundary(λ=1) |")
     A("| 其余 | 优化器/增强/调度（`step_size=epochs//3`）与基线**完全一致**，仅轮数+早停不同 |")
-    A("| 范围 | U-Net / Attention U-Net × 3 损失；**UNet++ × {CE+Dice, Tversky}**（验证 UNet++ 的 Tversky 结论） |")
+    A("| 范围 | U-Net / Attention U-Net × 3 损失；**UNet++ / TransUNet × {CE+Dice, Tversky}** |")
     A("| 新增代码 | `train_supervised.py` 的 `--early-stop` / `--min-epochs` |\n")
 
     rows = []
@@ -105,8 +105,9 @@ def main():
         return None
 
     A("## 四、判据与结论\n")
-    A("**① 训练预算是主导因素。** 全部 8 个配置在延长训练后**一律提升**（Δ 均为正）；最优轮集中在 **29–81**，"
-      "远大于原设定的 24 —— 说明 24 epoch 基线**严重欠拟合**。\n")
+    A("**① 训练预算主导（轻量模型）。** 10 个配置中 **9 个**在延长训练后提升（Δ **−0.023 ~ +0.074**）；"
+      "最优轮集中在 **23–81**，远大于原设定的 24 —— 说明 24 epoch 基线**严重欠拟合**。"
+      "唯一例外是 **TransUNet + Tversky（Δ −0.023）**，见 ③。\n")
     bnd_ok = []
     for m in ("unet", "attunet"):
         c, b = get(m, "ce_dice"), get(m, "boundary")
@@ -115,7 +116,7 @@ def main():
     A("**② “Boundary 有害”成立。** 150ep 下 boundary 仍明显低于 CE+Dice："
       + "、".join(f"{m} {d:+.4f}" for m, d in bnd_ok) + " → 结论**未被推翻**。\n")
     tv = []
-    for m in ("unet", "attunet", "unetpp"):
+    for m in ("unet", "attunet", "unetpp", "transunet"):
         c, t = get(m, "ce_dice"), get(m, "tversky")
         if c and t:
             tv.append((m, (t["s24"]["mean"] - c["s24"]["mean"]) if (t["s24"] and c["s24"]) else None,
@@ -127,9 +128,10 @@ def main():
         verdict = "反转（原有害→现不劣）" if (d24 is not None and d24 < 0 <= d150) else ("保持" if d150 >= 0 else "仍偏差")
         A(f"| {m} | {(('%+.4f' % d24) if d24 is not None else '—')} | {d150:+.4f} | {verdict} |")
     A("")
-    A("→ 在充分训练下 **Tversky 全面 ≥ CE+Dice**，原“UNet++ 有害”系欠拟合假象。\n")
-    A("**④ 附带发现。** 150ep 的 U-Net（CE+Dice 0.6875 / Tversky 0.6966）已**追平** 24ep 的 TransUNet（0.6958）"
-      "—— 监督式内部的“结构差距”同样被训练预算抹平。\n")
+    A("→ 在充分训练下 **Tversky 对轻量模型（U-Net / AttU-Net / UNet++）≥ CE+Dice**，原“UNet++ 有害”系欠拟合假象；"
+      "但 **TransUNet 相反（−0.027）**，其最优轮仅 23、早早饱和后持续退化 —— 故结论应为**模型依赖**，而非普适。\n")
+    A("**④ 附带发现。** 150ep 的 U-Net（1.9M；CE+Dice 0.6875 / Tversky 0.6966）与 150ep 的 TransUNet"
+      "（105M；CE+Dice 0.7000）仅差 0.003–0.013 —— 监督式内部的“结构差距”被训练预算抹平。\n")
 
     # ---- P1 + A ----
     p1a = None
@@ -165,16 +167,16 @@ def main():
     A("python summarize_p1.py      # -> results/p1_summary.{md,json}")
     A("```\n")
 
-    A("## 六、产物清单\n")
+    A("## 七、产物清单\n")
     A("| 文件 | 说明 |")
     A("|---|---|")
-    A("| `results/p1_*.json`（24 个） | 每个 (模型×损失×种子) 的测试结果 + 逐轮 history |")
+    A("| `results/p1_*.json`（30 个） | 每个 (模型×损失×种子) 的测试结果 + 逐轮 history |")
     A("| `results/p1_summary.md` / `.json` | 24ep↔150ep 汇总 |")
     A("| `results/p1log_*.log` | 训练日志（含 early-stop 触发轮） |")
     A("| `src/run_p1_par.sh` / `run_p1_2.sh` | 重跑脚本（并行 / 串行） |")
     A("| `src/summarize_p1.py` / `make_p1_doc.py` | 汇总与本文件生成器 |")
     A("")
-    A("> 注：P1 只重训了 B 组（损失）；**未**在 P1 权重上再叠加 A 组（后处理/TTA/阈值）。若需要“P1+A”的组合结果，可另跑 `eval_postproc.py`。")
+    A("> 注：P1 只重训了 B 组（损失）；在 P1 权重上再叠加 A 组（后处理/TTA/阈值）的结果见 `results/p1a_summary.md`。")
 
     with open(OUT, "w") as f:
         f.write("\n".join(L) + "\n")

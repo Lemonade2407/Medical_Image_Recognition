@@ -12,12 +12,10 @@ curve to results/prompt_quality.png.
 import os
 import sys
 import json
-import glob
 import importlib.util
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from PIL import Image
 from scipy import ndimage
 import matplotlib
@@ -31,14 +29,13 @@ MEDSAM_DIR = "/mnt/workspace/models/medsam_vit_b"
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
 
 sys.path.insert(0, SRC)
-from busi_common import build_index, load_split, orig_size, load_mask, dice_binary, iou_binary  # noqa
+from busi_common import build_index, load_split, orig_size, load_mask, dice_binary  # noqa
 
 _spec = importlib.util.spec_from_file_location("busi_models2", os.path.join(SRC, "models.py"))
 _bm = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_bm)
 
 SCALES = [0.7, 0.85, 1.0, 1.15, 1.3, 1.5]
 SHIFTS = [0.0, 0.15]          # extra translation level (fraction of box size)
-LESION = None
 
 
 def gt_box(gt):
@@ -67,15 +64,6 @@ def box_iou(b1, b2):
     a1 = (b1[2] - b1[0]) * (b1[3] - b1[1])
     a2 = (b2[2] - b2[0]) * (b2[3] - b2[1])
     return inter / (a1 + a2 - inter + 1e-9)
-
-
-def box_to_mask(box, shape):
-    m = np.zeros(shape, dtype=bool)
-    x0, y0, x1, y1 = [int(round(v)) for v in box]
-    x0, y0 = max(0, x0), max(0, y0)
-    x1, y1 = min(shape[1], x1 + 1), min(shape[0], y1 + 1)
-    m[y0:y1, x0:x1] = True
-    return m
 
 
 # --------------------------- prompt models --------------------------- #

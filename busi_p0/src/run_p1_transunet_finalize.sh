@@ -1,7 +1,7 @@
 #!/bin/bash
 # Wait for the TransUNet P1 runs, then refresh the summary + both documents.
 for i in $(seq 1 300); do
-  grep -q "P1 TRANSUNET DONE" /mnt/workspace/busi_p0/results/p1_transunet.log 2>/dev/null && break
+  grep -qh "P1 TRANSUNET DONE" /mnt/workspace/busi_p0/results/p1_transunet.log /mnt/workspace/busi_p0/results/p1_transunet2.log 2>/dev/null && break
   sleep 60
 done
 cd /mnt/workspace/busi_p0/src

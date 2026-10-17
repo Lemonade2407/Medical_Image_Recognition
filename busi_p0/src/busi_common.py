@@ -9,7 +9,6 @@ import os
 import glob
 import json
 import numpy as np
-import torch
 from PIL import Image
 
 ROOT = "/mnt/workspace/busi_p0"
@@ -53,22 +52,6 @@ def load_mask(item):
             arr = np.array(Image.open(mp).convert("L").resize((w, h), Image.NEAREST))
         m |= (arr > 127)
     return m
-
-
-def load_image_gray(item, size):
-    """Grayscale (or RGB-replicated) standardized image as float32 HxWxC."""
-    im = Image.open(item["image"]).convert("RGB").resize((size, size), Image.BILINEAR)
-    a = np.asarray(im, dtype=np.float32)
-    a = a.mean(axis=2, keepdims=True)  # grayscale
-    a = (a - a.mean()) / (a.std() + 1e-8)  # per-image zero-mean unit-var
-    return a
-
-
-def load_image_rgb(item, size):
-    im = Image.open(item["image"]).convert("RGB").resize((size, size), Image.BILINEAR)
-    a = np.asarray(im, dtype=np.float32)
-    a = (a - a.mean(axis=(0, 1), keepdims=True)) / (a.std(axis=(0, 1), keepdims=True) + 1e-8)
-    return a
 
 
 # --------------------------------------------------------------------------- #

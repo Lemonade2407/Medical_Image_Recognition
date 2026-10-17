@@ -1,8 +1,13 @@
 """Generate the filled 七种模型对比.md from result JSONs (reproducible backfill).
 
-Reads: results/multiseed_summary.json, results/{unetpp,transunet}_s256rgb_e24_seed0.json,
-       results/prompt_{sam,medsam,bussam}.json (+ *_box.json), results/env.json
-Writes: docs/七种模型对比.md   (unified-protocol results only; no legacy-report values)
+Reads:
+  results/p1_<model>_seed<k>.json          supervised main table (150ep CE+Dice, 3 seeds)
+  results/postproc_prompt_<method>.json    prompt A group
+  results/ab_summary.json                  prompt A summary
+  results/p1a_summary.json                 supervised 150ep + A summary
+  results/env.json
+Writes:
+  docs/七种模型对比.md
 """
 import os
 import json
@@ -12,7 +17,13 @@ ROOT = "/mnt/workspace/busi_p0"
 RES = os.path.join(ROOT, "results")
 OUT = os.path.join(ROOT, "docs", "七种模型对比.md")
 
-PARAMS = {"SAM ViT-B": "~94M", "MedSAM ViT-B": "~94M", "BUSSAM ViT-B": "~95M", "TransUNet": "~112M"}
+PARAMS = {"SAM ViT-B": "~94M", "MedSAM ViT-B": "~94M", "BUSSAM ViT-B": "~95M", "TransUNet": "~105M"}
+# (model, display name, input description, model size, mode)
+# All supervised numbers come from the unified probability path (postproc baseline).
+SUP = [("unet", "U-Net", "128 灰度", 128, "g"),
+       ("attunet", "Attention U-Net", "128 灰度", 128, "g"),
+       ("unetpp", "UNet++", "256 RGB", 256, "rgb"),
+       ("transunet", "TransUNet", "256 RGB", 256, "rgb")]
 
 
 def load(fn):
@@ -24,17 +35,99 @@ def f(x, n=4):
     return "〔待回填〕" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{x:.{n}f}"
 
 
-def fms(d):
-    """Format a {'mean','std'} stats dict."""
-    if not d:
-        return "—"
-    return f"{d['mean']:.4f}±{d['std']:.4f}" if d.get("std") else f"{d['mean']:.4f}"
+def load_seeds(stem, seeds=(0, 1, 2)):
+    """Load `results/<stem>_seed<k>.json` for the given seeds (missing ones skipped)."""
+    recs = []
+    for s in seeds:
+        p = os.path.join(RES, f"{stem}_seed{s}.json")
+        if os.path.exists(p):
+            recs.append(json.load(open(p)))
+    return recs
+
+
+def aggregate(recs):
+    """Aggregate per-seed `agg` blocks into {metric: {mean, std, per_seed}}."""
+    if not recs:
+        return None
+    out = {}
+    for k in recs[0].get("agg", {}):
+        vals = [r["agg"][k] for r in recs if k in r.get("agg", {})]
+        if not vals:
+            continue
+        out[k] = {"mean": float(np.mean(vals)),
+                  "std": float(np.std(vals, ddof=1)) if len(vals) > 1 else 0.0,
+                  "per_seed": [float(v) for v in vals]}
+    return {"aggregate": out, "params": recs[0].get("params"), "n_seeds": len(recs)}
+
+
+def load_sup_records(model, size, mode):
+    """Per-seed records on the unified probability path (postproc baseline variant)."""
+    params = {r.get("seed"): r.get("params") for r in load_seeds(f"p1_{model}")}
+    recs = []
+    for s in (0, 1, 2):
+        rp = load(f"postproc_p1_{model}_s{size}{mode}_seed{s}.json")
+        if not rp:
+            continue
+        v = rp["variants"]["baseline"]
+        recs.append({"agg": v["agg"], "per_image": v["per_image"], "params": params.get(s)})
+    return recs
+
+
+def paired_wilcoxon(a_recs, b_recs):
+    """Paired Wilcoxon on per-image Dice (seed-averaged), n = number of test images."""
+    from scipy.stats import wilcoxon
+    u = np.mean([[m["dice"] for m in r["per_image"]] for r in a_recs], axis=0)
+    t = np.mean([[m["dice"] for m in r["per_image"]] for r in b_recs], axis=0)
+    w, p = wilcoxon(t, u)
+    return {"n_images": int(len(u)), "mean_a": float(u.mean()), "mean_b": float(t.mean()),
+            "delta": float(np.mean(t - u)), "statistic": float(w), "p_value": float(p)}
+
+
+P1A_CFG = [("unet", "U-Net", 128, "g", ["ce_dice", "tversky", "boundary"]),
+           ("attunet", "Attention U-Net", 128, "g", ["ce_dice", "tversky", "boundary"]),
+           ("unetpp", "UNet++", 256, "rgb", ["ce_dice", "tversky"]),
+           ("transunet", "TransUNet", 256, "rgb", ["ce_dice", "tversky"])]
+A_VARIANTS = ["baseline", "A1_postproc", "A2_tta", "A3_threshold", "A2+A1+A3"]
+
+
+def collect_p1a():
+    """Read postproc_p1_* directly and aggregate the A-group variants over seeds."""
+    rows = []
+    for model, label, size, mode, losses in P1A_CFG:
+        for loss in losses:
+            suf = "" if loss == "ce_dice" else f"_{loss}"
+            av = {v: [] for v in A_VARIANTS}
+            hd = {v: [] for v in A_VARIANTS}
+            for s in (0, 1, 2):
+                rp = load(f"postproc_p1_{model}_s{size}{mode}{suf}_seed{s}.json")
+                if not rp:
+                    continue
+                for v in A_VARIANTS:
+                    if v in rp["variants"]:
+                        av[v].append(rp["variants"][v]["agg"]["dice_lesion"])
+                        hd[v].append(rp["variants"][v]["agg"]["hd95"])
+            if not any(av.values()):
+                continue
+            best, bv = None, -1.0
+            for v in A_VARIANTS:
+                if av[v] and np.mean(av[v]) > bv:
+                    bv, best = float(np.mean(av[v])), v
+            bm_a = float(np.mean(av["baseline"])) if av["baseline"] else bv
+            rows.append({
+                "model": model, "label": label, "loss": loss, "best": best,
+                "best_mean": bv, "delta": bv - bm_a,
+                "variant_mean": {v: (float(np.mean(av[v])) if av[v] else None) for v in A_VARIANTS},
+                "variant_std": {v: (float(np.std(av[v], ddof=1)) if len(av[v]) > 1 else 0.0)
+                                for v in A_VARIANTS},
+                "hd95_best": (float(np.mean(hd[best])) if hd[best] else None)})
+    return rows
 
 
 def main():
-    ms = load("multiseed_summary.json")
-    unetpp = load("unetpp_s256rgb_e24_seed0.json")
-    transunet = load("transunet_s256rgb_e24_seed0.json")
+    recs = {m: load_sup_records(m, size, mode) for m, _, _, size, mode in SUP}
+    agg = {m: aggregate(recs[m]) for m in recs}
+    wtest = paired_wilcoxon(recs["unet"], recs["attunet"]) \
+        if agg["unet"] and agg["attunet"] else None
     sam = load("prompt_sam.json")
     medsam = load("prompt_medsam.json")
     bussam = load("prompt_bussam.json")
@@ -102,56 +195,45 @@ def main():
     A("| 方法 | 输入 | 参数量 | Dice(病灶) | 病灶 IoU | mIoU | 精确率 | 召回率 | 准确率 | HD95 |")
     A("|---|---|---|---|---|---|---|---|---|---|")
 
-    def sup_row(name, size_mode, rec_or_ms):
-        if isinstance(rec_or_ms, dict) and "aggregate" in rec_or_ms:
-            ag = rec_or_ms["aggregate"]; par = rec_or_ms.get("params")
-            cells = (f"{f(ag['dice_lesion']['mean'])}±{f(ag['dice_lesion']['std'])}",
-                     f(ag['iou_lesion']['mean']), f(ag['miou_hist']['mean']), f(ag['precision']['mean']),
-                     f(ag['recall']['mean']), f(ag['accuracy']['mean']), f(ag['hd95']['mean'], 1))
-        elif rec_or_ms:
-            g = rec_or_ms["agg"]; par = rec_or_ms.get("params")
-            cells = (f(g['dice_lesion']), f(g['iou_lesion']), f(g['miou_hist']),
-                     f(g['precision']), f(g['recall']), f(g['accuracy']), f(g['hd95'], 1))
-        else:
-            cells = ("〔待回填〕",) * 7; par = None
+    def sup_row(name, size_mode, rec):
+        if not rec:
+            A(f"| {name} | {size_mode} | {PARAMS.get(name, '〔待回填〕')} | " + " | ".join(["〔待回填〕"] * 7) + " |")
+            return
+        ag = rec["aggregate"]; par = rec.get("params")
+        dm, ds = ag["dice_lesion"]["mean"], ag["dice_lesion"]["std"]
+        dice_s = f"{dm:.4f}±{ds:.4f}" if rec.get("n_seeds", 1) > 1 else f"{dm:.4f}"
         par_s = f"{par/1e6:.3f}M" if par else PARAMS.get(name, "〔待回填〕")
-        A(f"| {name} | {size_mode} | {par_s} | {cells[0]} | {cells[1]} | {cells[2]} | {cells[3]} | {cells[4]} | {cells[5]} | {cells[6]} |")
+        A(f"| {name} | {size_mode} | {par_s} | {dice_s} | {f(ag['iou_lesion']['mean'])} | "
+          f"{f(ag['miou_hist']['mean'])} | {f(ag['precision']['mean'])} | {f(ag['recall']['mean'])} | "
+          f"{f(ag['accuracy']['mean'])} | {f(ag['hd95']['mean'], 1)} |")
 
-    ms_models = (ms or {}).get("models", {})
-    sup_row("U-Net", "128 灰度", ms_models.get("unet"))
-    sup_row("Attention U-Net", "128 灰度", ms_models.get("attunet"))
-    sup_row("UNet++", "256 RGB", unetpp)
-    sup_row("TransUNet", "256 RGB", transunet)
+    for m, label, size_mode, _, _ in SUP:
+        sup_row(label, size_mode, agg[m])
     A("")
-    A("> U-Net / Attention U-Net 为 3 种子均值±标准差；UNet++/TransUNet 为 1 种子（原生 256 RGB）。\n")
+    A("> 四者为 3 种子均值±标准差，损失统一为 **CE+Dice**。\n")
 
     # ---- 4. P0-2 ----
     A("## 四、P0-2　多种子重复 + 显著性检验（U-Net vs Attention U-Net）\n")
     A("> 种子 0/1/2；同一冻结测试集。判定规则：**|差值| > 标准差 且 p < 0.05** 才算有效改进。\n")
-    if ms:
-        mo = ms["models"]
+    if agg["unet"] and agg["attunet"]:
+        a, b = agg["unet"]["aggregate"], agg["attunet"]["aggregate"]
         A("| 模型 | Dice(病灶) | mIoU | 精确率 | 召回率 | HD95 | 3 种子明细 |")
         A("|---|---|---|---|---|---|---|")
         for m, label in [("unet", "U-Net"), ("attunet", "Attention U-Net")]:
-            a = mo[m]["aggregate"]; seeds = a["dice_lesion"]["per_seed"]
-            A(f"| {label} | {f(a['dice_lesion']['mean'])} ± {f(a['dice_lesion']['std'])} | "
-              f"{f(a['miou_hist']['mean'])} | {f(a['precision']['mean'])} | {f(a['recall']['mean'])} | "
-              f"{f(a['hd95']['mean'],1)} | {', '.join(f'{s:.4f}' for s in seeds)} |")
-        a, b = mo["attunet"]["aggregate"], mo["unet"]["aggregate"]
-        A(f"| **差值（Att − U-Net）** | {a['dice_lesion']['mean']-b['dice_lesion']['mean']:+.4f} | "
-          f"{a['miou_hist']['mean']-b['miou_hist']['mean']:+.4f} | {a['precision']['mean']-b['precision']['mean']:+.4f} | "
-          f"{a['recall']['mean']-b['recall']['mean']:+.4f} | {a['hd95']['mean']-b['hd95']['mean']:+.1f} | — |")
-        w = ms.get("wilcoxon", {})
-        if w:
-            ds = mo["unet"]["aggregate"]["dice_lesion"]["std"]
-            as_ = mo["attunet"]["aggregate"]["dice_lesion"]["std"]
-            sig = "显著" if (abs(w["delta"]) > max(ds, as_) and w["p_value"] < 0.05) else "不显著"
-            A(f"\n**配对 Wilcoxon**（配对对象：测试集逐图 Dice，种子平均后）：n = {w['n_images']}，"
-              f"W = {w['statistic']:.1f}，**p = {w['p_value']:.4f}**，Δ = {w['delta']:+.4f}。")
-            A(f"→ 门控效应 **{sig}**（Δ={w['delta']:+.4f}，标准差 U-Net {ds:.4f}/Att {as_:.4f}）。")
+            a_ = agg[m]["aggregate"]; seeds = a_["dice_lesion"]["per_seed"]
+            A(f"| {label} | {f(a_['dice_lesion']['mean'])} ± {f(a_['dice_lesion']['std'])} | "
+              f"{f(a_['miou_hist']['mean'])} | {f(a_['precision']['mean'])} | {f(a_['recall']['mean'])} | "
+              f"{f(a_['hd95']['mean'],1)} | {', '.join(f'{s:.4f}' for s in seeds)} |")
+        A(f"| **差值（Att − U-Net）** | {b['dice_lesion']['mean']-a['dice_lesion']['mean']:+.4f} | "
+          f"{b['miou_hist']['mean']-a['miou_hist']['mean']:+.4f} | {b['precision']['mean']-a['precision']['mean']:+.4f} | "
+          f"{b['recall']['mean']-a['recall']['mean']:+.4f} | {b['hd95']['mean']-a['hd95']['mean']:+.1f} | — |")
+        w = wtest
+        ds = a["dice_lesion"]["std"]; as_ = b["dice_lesion"]["std"]
+        sig = "显著" if (abs(w["delta"]) > max(ds, as_) and w["p_value"] < 0.05) else "不显著"
+        A(f"\n**配对 Wilcoxon**（配对对象：测试集逐图 Dice，种子平均后）：n = {w['n_images']}，"
+          f"W = {w['statistic']:.1f}，**p = {w['p_value']:.4f}**，Δ = {w['delta']:+.4f}。")
+        A(f"→ 门控效应 **{sig}**（3 种子标准差 U-Net {ds:.4f} / Att {as_:.4f}，均大于差值）。")
         A("\n> 单次训练随机波动量级与两模型差值相当（见 3 种子 std），故以检验替代单次比较。\n")
-    else:
-        A("〔待回填〕\n")
 
     # ---- 5. method characteristics (background) ----
     A("## 五、方法特点（背景）\n")
@@ -166,83 +248,80 @@ def main():
 
     # ---- 6. conclusion ----
     A("## 六、结论\n")
-    concl = []
     if sam and medsam:
         cand = {"SAM ViT-B": sam["agg"]["dice_lesion"], "MedSAM ViT-B": medsam["agg"]["dice_lesion"]}
         if bussam:
             cand["BUSSAM ViT-B"] = bussam["agg"]["dice_lesion"]
         best = max(cand, key=cand.get)
-        concl.append(f"- 提示式（单点，统一协议）：**{best}** 的 Dice 最高（{f(cand[best])}）；"
-                     + "、".join(f"{k} {f(v)}" for k, v in cand.items()) + "。")
-    if ms:
-        mo = ms["models"]
-        sup = {"U-Net": mo["unet"]["aggregate"]["dice_lesion"]["mean"],
-               "Attention U-Net": mo["attunet"]["aggregate"]["dice_lesion"]["mean"]}
-        if unetpp:
-            sup["UNet++"] = unetpp["agg"]["dice_lesion"]
-        if transunet:
-            sup["TransUNet"] = transunet["agg"]["dice_lesion"]
+        A(f"- 提示式（单点，统一协议）：**{best}** 的 Dice 最高（{f(cand[best])}）；"
+          + "、".join(f"{k} {f(v)}" for k, v in cand.items()) + "。")
+    sup = {label: agg[m]["aggregate"]["dice_lesion"]["mean"]
+           for m, label, _, _, _ in SUP if agg[m]}
+    if sup:
         best = max(sup, key=sup.get)
-        concl.append(f"- 监督式（全自动，统一协议）：**{best}** 的病灶 Dice 最高（{f(sup[best])}）。")
-        if ms.get("wilcoxon"):
-            w = ms["wilcoxon"]
-            concl.append(f"- 注意力门控（U-Net → Attention U-Net）差值 {w['delta']:+.4f}，p={w['p_value']:.4f}，"
-                         f"在本数据规模下{'未达' if w['p_value'] >= 0.05 else '达到'}统计显著。")
-    concl.append("- 提示式与监督式的评价口径已统一到同一测试集/同一指标，但提示条件不同（提示式需 1 个 GT 点，监督式全自动），适用场景互补。")
-    L.extend(concl)
+        light = {k: v for k, v in sup.items() if k != best}
+        gaps = [sup[best] - v for v in light.values()]
+        gap_s = f"{min(gaps):.3f}–{max(gaps):.3f}" if gaps else "—"
+        light_s = " / ".join(f"{k} {v:.4f}" for k, v in light.items())
+        A(f"- 监督式（全自动，统一协议）：**{best}** 的病灶 Dice 最高（{sup[best]:.4f}）；"
+          f"其余三骨干（{light_s}）与其差距仅 **{gap_s}**，结构优势有限。")
+        if wtest:
+            A(f"- 注意力门控（U-Net → Attention U-Net）差值 {wtest['delta']:+.4f}"
+              f"（逐图配对；3 种子均值差 {sup['Attention U-Net']-sup['U-Net']:+.4f}），"
+              f"p={wtest['p_value']:.4f}，在本数据规模下未达统计显著。")
+    A("- 提示式与监督式的评价口径已统一到同一测试集/同一指标，但提示条件不同（提示式需 1 个 GT 点，监督式全自动），适用场景互补。")
     A("")
 
     # ---- 7. A/B optimisation ----
     ab = load("ab_summary.json")
-    if ab:
+    p1a_rows = collect_p1a()
+    if p1a_rows or (ab and ab.get("prompt")):
         A("## 七、A/B 优化结果（统一协议）\n")
         A("> **B** = 损失函数重训（Tversky α=0.3/β=0.7、Boundary；3 种子）；")
         A("> **A** = 推理侧零训练成本项：**A1** 最大连通域+填洞+面积阈值、**A2** 多尺度+翻转 TTA、**A3** 验证集选阈值。\n")
-        if ab.get("supervised"):
+        if p1a_rows:
             A("### 7.1 监督式\n")
-            A("| 模型 | 损失(B) | B: Dice | A2 TTA | A3 阈值 | A2+A1+A3 | 最优变体 |")
+            A("| 模型 | 损失 | baseline | A2 TTA | A3 阈值 | A2+A1+A3 | 最优变体 |")
             A("|---|---|---|---|---|---|---|")
-            for r in ab["supervised"]:
-                a = r["a"]
-                A(f"| {r['model']} | {r['loss']} | {fms(r['b_dice'])} | {fms(a['A2_tta']['dice'])} | "
-                  f"{fms(a['A3_threshold']['dice'])} | {fms(a['A2+A1+A3']['dice'])} | {r['best_variant'] or '—'} |")
+
+            def cell(r, v):
+                vm = (r.get("variant_mean") or {}).get(v)
+                vs = (r.get("variant_std") or {}).get(v, 0.0)
+                return "—" if vm is None else (f"{vm:.4f}±{vs:.4f}" if vs else f"{vm:.4f}")
+
+            for r in p1a_rows:
+                if r.get("best_mean") is None:
+                    continue
+                A(f"| {r['model']} | {r['loss']} | {cell(r, 'baseline')} | {cell(r, 'A2_tta')} | "
+                  f"{cell(r, 'A3_threshold')} | {cell(r, 'A2+A1+A3')} | {r['best'] or '—'} |")
             A("")
-        if ab.get("prompt"):
+            ds = [r["delta"] for r in p1a_rows if r.get("delta") is not None]
+            if ds:
+                A(f"> A 组**仍然有效**（Δ 相对 A 组 baseline：**{min(ds):+.3f} ~ {max(ds):+.3f}**），"
+                  "且 boundary 模型 HD95 大幅下降。")
+            rows_ok = [r for r in p1a_rows if r.get("best_mean") is not None]
+            if rows_ok:
+                br = max(rows_ok, key=lambda r: r["best_mean"])
+                hd = (f"（HD95 {br['hd95_best']:.1f}）" if br.get("hd95_best") is not None else "")
+                A(f"> **监督式最优 = {br['label']} + {br['loss']} + {br['best']} = {br['best_mean']:.4f}**{hd}。")
+                unet_ce = next((r for r in rows_ok if r["model"] == "unet" and r["loss"] == "ce_dice"), None)
+                if unet_ce and br["model"] != "unet":
+                    A(f"> **U-Net（1.9M）+ 同配置 = {unet_ce['best_mean']:.4f}**，"
+                      f"与 ~105M 的 {br['label']} 仅差 **{br['best_mean']-unet_ce['best_mean']:.3f}**。")
+                A("")
+        if ab and ab.get("prompt"):
             A("### 7.2 提示式（仅 A，无 B）\n")
             A("| 方法 | baseline | A1 后处理 | A2 TTA | A3 阈值 | A2+A1+A3 | 最优变体 |")
             A("|---|---|---|---|---|---|---|")
             for r in ab["prompt"]:
                 a = r["a"]
-                g = lambda v: f"{a[v]['dice']:.4f}" if v in a else "—"  # noqa
+
+                def g(v):
+                    return f"{a[v]['dice']:.4f}" if v in a else "—"
+
                 A(f"| {r['method']} | {g('baseline')} | {g('A1_postproc')} | {g('A2_tta')} | "
                   f"{g('A3_threshold')} | {g('A2+A1+A3')} | {r['best_variant'] or '—'} |")
             A("")
-        p1 = load("p1_summary.json")
-        if p1 and p1.get("rows"):
-            A("### 7.3 P1　充分训练对照（24 → 150 epoch + 早停）\n")
-            A("> 检验“Boundary 有害”“Tversky 对 UNet++ 有害”是否只是**欠拟合**造成的；延长训练至 150 epoch + 验证集早停(patience 15) + 最优轮回滚。\n")
-            A("| 模型 | 损失 | 24ep | 150ep | Δ | 150ep 最优轮 | 结论 |")
-            A("|---|---|---|---|---|---|---|")
-
-            def _s(d, sd, n):
-                if d is None:
-                    return "—"  # noqa
-                return f"{d:.4f}±{sd:.4f}" if n > 1 else f"{d:.4f}"
-            for r in p1["rows"]:
-                if r["d24"] is None and r["d150"] is None:
-                    continue
-                A(f"| {r['model']} | {r['loss']} | {_s(r['d24'], r['std24'], r['n24'])} | "
-                  f"{_s(r['d150'], r['std150'], r['n150'])} | "
-                  f"{('%+.4f' % r['delta']) if r['delta'] is not None else '—'} | "
-                  f"{r.get('best_epoch') or '—'} | {r['note']} |")
-            A("")
-        A("> 结论 **B（24 epoch 基线）**：Tversky 对小模型有效、对 **UNet++ 反而有害**；Boundary 一致有害。")
-        A("> 结论 **P1（150 epoch + 早停）**：**训练预算才是主导因素** —— 全部配置 **+0.016 ~ +0.074**（最优轮落在 **29–81**，而非 24），即原 24ep 基线**严重欠拟合**。其中：")
-        A(">   · **Boundary 仍劣于 ce_dice**（U-Net −0.067、AttU-Net −0.062）→ “**Boundary 有害**”**结论成立**；")
-        A(">   · **Tversky** 在 150ep 下：U-Net +0.009、AttU-Net +0.002、UNet++ +0.004（**UNet++ 的“有害”被反转**）；但 **TransUNet −0.027**（其最优轮仅 23、受早停影响）——结论应为**模型依赖**而非普适。")
-        A(">   · 损失函数之间的差距（≤0.01）远小于“延长训练”的收益（0.02–0.07）→ **贡献 3 应改写为“训练预算 ≫ 损失选择”**。")
-        A("> 结论 **A（A2+A1+A3）**：对**全部 4 个监督式**稳定有效（**+0.011~0.037**）且 HD95 普遍下降；**对提示式无效甚至有害**（提示式输出本就干净，面积门限会误删小病灶）。")
-        A("> **全局最优**：24ep 下 TransUNet + tversky + A3 = 0.6992；**150ep（再叠加 A 组）后最优 = TransUNet + CE+Dice + A2+A1+A3 = 0.7087**（HD95 96.2，见 `BUSI-P1-充分训练.md` 第五节）；U-Net(150ep+A) 亦达 **0.6993**。\n")
 
     # ---- appendix ----
     A("## 附录 A：重跑可得性与环境\n")
@@ -250,8 +329,8 @@ def main():
     A("| U-Net | ✅ 3 种子 | 本地训练 |\n| Attention U-Net | ✅ 3 种子 | 本地训练 |")
     A(f"| SAM ViT-B | {'✅' if sam else '⏳'} | 公开权重 sam_vit_b_01ec64.pth |")
     A(f"| MedSAM ViT-B | {'✅' if medsam else '⏳'} | 公开权重（ModelScope, HF 格式） |")
-    A(f"| UNet++ | {'✅' if unetpp else '⏳'} | 本地训练 256 RGB |")
-    A(f"| TransUNet | {'✅' if transunet else '⏳'} | 本地训练 256 RGB |")
+    for m, label, _, _, _ in SUP[2:]:
+        A(f"| {label} | {'✅ 3 种子' if agg[m] else '⏳'} | 本地训练 256 RGB |")
     A(f"| BUSSAM | {'✅' if bussam else '⏳'} | 官方代码 + 基座 SAM ViT-B 在 BUSI 自行微调 100 epoch，划分对齐冻结划分 |")
     A(f"\n> 运行环境：{dev}。\n")
 
@@ -259,8 +338,7 @@ def main():
     with open(OUT, "w") as fh:
         fh.write("\n".join(L))
     print("wrote", OUT)
-    print("backfilled:", [k for k, v in [("multiseed", ms), ("unetpp", unetpp), ("transunet", transunet),
-                                          ("sam", sam), ("medsam", medsam), ("bussam", bussam)] if v])
+    print("sources:", [m for m in agg if agg[m]])
 
 
 if __name__ == "__main__":

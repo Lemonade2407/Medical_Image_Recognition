@@ -24,7 +24,7 @@ DS = os.path.join(BUSSAM, "datasets")
 sys_path = os.path.join(ROOT, "src")
 import sys
 sys.path.insert(0, sys_path)
-from busi_common import build_index, load_split, load_mask, orig_size  # noqa
+from busi_common import build_index, load_split, load_mask  # noqa
 
 
 def flat_id(name):

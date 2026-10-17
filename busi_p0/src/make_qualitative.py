@@ -16,7 +16,6 @@ import importlib.util
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torchvision.transforms.functional import to_tensor
 from PIL import Image
 from scipy import ndimage

@@ -5,11 +5,12 @@ then run a paired Wilcoxon signed-rank test across the 116 test images between
 the two models. Also reports a per-seed aggregate table.
 """
 import os
+import sys
 import json
-import glob
 import numpy as np
 from scipy.stats import wilcoxon
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from busi_common import RESULTS
 
 TAG = "s{size}{mode}_e{ep}"

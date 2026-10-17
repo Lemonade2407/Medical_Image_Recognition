@@ -166,7 +166,7 @@ def run_variant(probs, gts, cls, names, thr, use_pp, min_area):
         per.append(m)
     tp = sum(x["tp"] for x in per); fp = sum(x["fp"] for x in per)
     fn = sum(x["fn"] for x in per); tn = sum(x["tn"] for x in per)
-    iou_bg = tn / (tn + fp + 1e-7); iou_fg = tp / (tp + fn + fp + 1e-7)
+    iou_bg = tn / (tn + fp + fn + 1e-7); iou_fg = tp / (tp + fn + fp + 1e-7)
     agg = {"n_lesion": len(per),
            "dice_lesion": float(np.mean([x["dice"] for x in per])),
            "iou_lesion": float(np.mean([x["iou"] for x in per])),

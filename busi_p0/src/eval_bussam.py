@@ -13,7 +13,6 @@ import argparse
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torchvision.transforms.functional import to_tensor
 from PIL import Image
 from scipy import ndimage
@@ -66,7 +65,7 @@ def aggregate(per):
         return float(np.mean(v)) if v else float("nan")
     tp = sum(x["tp"] for x in per); fp = sum(x["fp"] for x in per)
     fn = sum(x["fn"] for x in per); tn = sum(x["tn"] for x in per)
-    iou_bg = tn / (tn + fp + 1e-7); iou_fg = tp / (tp + fn + fp + 1e-7)
+    iou_bg = tn / (tn + fp + fn + 1e-7); iou_fg = tp / (tp + fn + fp + 1e-7)
     return {
         "n_lesion": len(per),
         "dice_lesion": m([x["dice"] for x in per]),
