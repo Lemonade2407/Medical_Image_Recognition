@@ -1,25 +1,26 @@
-"""P3 v3: error-type-aware targeted prompt correction (zero retraining).
+"""P3 v4: error-type-aware targeted prompt correction, on the 150-epoch weights.
 
-Findings that drove this version (measured, see probe_tier*.py):
-  * of the 96 test lesion images, 85 have a coarse box at 0.5, 2 only at the low
-    threshold (pmax 0.39 / 0.48) and 9 have NO region at any usable threshold
-    (pmax 0.029-0.181). Those 9 are the "no box" hard failures.
-  * the pmax distribution of those 9 is indistinguishable from the normal test
-    images (normal median 0.078, p75 0.174), so a *percentile* gate on pmax can
-    NOT raise the precision of "missing" detection: at any tau the flagged set is
-    ~40% lesion / 60% normal. Precision is capped by the binary coarse model.
-  -> hence the gate is structural and threshold-free ("argmax never calls any
-     pixel a lesion"), and the recoverable bucket gets multi-candidate prompts
-     whose aggregation is now the variable under test.
+Changes vs v3:
+  * the coarse model is the P1 checkpoint (150 ep + early stop + best-val
+    rollback) instead of the 24 ep viz_* one, i.e. the same weights the main
+    comparison table uses;
+  * all three seeds are run, so the effect is reported as mean±std and the
+    paired test uses seed-averaged per-image Dice (project convention);
+  * an extra control isolates the specificity killer: fallback restricted to
+    centre boxes (no whole-image box).
 
-Aggregation modes: union / majority / intersect / select (by MedSAM's own
-iou_score). `select` avoids the precision dilution of unioning 3 masks.
+Diagnosis (measured, probe_tier2.py on these weights): of the 96 test lesion
+images 86 have a coarse box at 0.5, 0 have one only at the low threshold, and
+10 have nothing. Those 10 are the recovery target; their pmax overlaps the 13
+low-confidence normal images, so the gate precision is capped (~0.43 at
+tau=0.5) no matter where a pmax percentile is set.
 
-Outputs: results/tier_prompt.json / .md / .png
+Outputs: results/<--out>.json / .md / .png (default prefix tier_prompt).
 """
 import os
 import sys
 import json
+import argparse
 import importlib.util
 
 import numpy as np
@@ -27,6 +28,7 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 from scipy import ndimage
+from scipy.stats import wilcoxon
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -37,7 +39,7 @@ sys.path.insert(0, SRC)
 from busi_common import build_index, load_split, orig_size, load_mask, dice_binary  # noqa
 import eval_prompt_quality as epq  # noqa
 
-_spec = importlib.util.spec_from_file_location("busi_models5", os.path.join(SRC, "models.py"))
+_spec = importlib.util.spec_from_file_location("busi_models6", os.path.join(SRC, "models.py"))
 _bm = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_bm)
 
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
@@ -134,22 +136,24 @@ def shift_box(box, dx, dy):
     return np.array([max(0, b[0]), max(0, b[1]), b[2], b[3]], dtype=np.float64)
 
 
-def fallback_boxes(wh):
-    """Region proposals that do not depend on the coarse map (for blind images)."""
+def fallback_boxes(wh, whole=True):
+    """Region proposals that do not depend on the coarse map.
+
+    The centre-only variant keeps three boxes on purpose: majority voting over an
+    even number of candidates degenerates to intersection (a tie at 0.5 is not
+    strictly greater), so a two-box set would make majority and intersect the
+    same experiment.
+    """
     w, h = wh
-    out = [np.array([0, 0, w - 1, h - 1], dtype=np.float64)]
-    for frac in (0.70, 0.45):
+    out = [np.array([0, 0, w - 1, h - 1], dtype=np.float64)] if whole else []
+    for frac in ((0.70, 0.45) if whole else (0.85, 0.70, 0.45)):
         bw, bh = w * frac / 2, h * frac / 2
         out.append(np.array([w / 2 - bw, h / 2 - bh, w / 2 + bw, h / 2 + bh], dtype=np.float64))
     return out
 
 
 def diagnose(sig, tau):
-    """Errors are diagnosed from the coarse map only; no GT, no percentile gate.
-
-    'box is None' means the mask argmax never calls any pixel a lesion, so the
-    image is either hopeless ('全盲') or merely under-confident ('欠自信').
-    """
+    """Errors from the coarse map only; no GT and no percentile gate."""
     if sig["box"] is None:
         return "欠自信" if sig["box_lo"] is not None else "全盲"
     if sig["shift"] > tau["d"]:
@@ -160,11 +164,7 @@ def diagnose(sig, tau):
 
 
 def candidates(sig, tau, policy):
-    """policy: single | blind | blind+rescue | type.
-
-    tau['p'] is an optional extra gate on the blind buckets: a blind image only
-    gets a fallback prompt if its peak confidence is still below tau['p'].
-    """
+    """policy: single | blind | blind_center | blind+rescue | type."""
     if policy == "single":
         return [] if sig["box"] is None else [expand(sig["box"], 1.0)]
 
@@ -173,16 +173,15 @@ def candidates(sig, tau, policy):
     if blind and sig["pmax"] >= tau["p"]:
         return []
 
-    if policy in ("blind", "blind+rescue"):
+    if policy in ("blind", "blind_center", "blind+rescue"):
         if t == "全盲":
-            return fallback_boxes(sig["wh"])
+            return fallback_boxes(sig["wh"], whole=(policy != "blind_center"))
         if t == "欠自信":
             if policy == "blind+rescue":
                 return [expand(sig["box_lo"], s) for s in SCALES]
             return []
         return [expand(sig["box"], 1.0)]
 
-    # 'type' — full type-aware (v1 B3 semantics, single-box elsewhere)
     if t == "全盲":
         return fallback_boxes(sig["wh"])
     if t == "欠自信":
@@ -247,11 +246,9 @@ def evaluate(records, signals, medsam, tau, policy, how):
 def agg_metrics(per):
     les = [p for p in per if p["cls"] in ("benign", "malignant")]
     nor = [p for p in per if p["cls"] == "normal"]
-    rec = [p for p in les if p["nobox"]]
     nfg = [p["fg_ratio"] for p in nor]
     return {"e2e_dice": float(np.mean([p["dice"] for p in les])),
             "nobox_rate": float(np.mean([p["nobox"] for p in les])),
-            "nobox_n": len(rec),
             "normal_fg": float(np.mean(nfg)) if nfg else 0.0,
             "normal_clean": float(np.mean([1.0 if f < 0.001 else 0.0 for f in nfg])) if nfg else 0.0,
             "normal_spec": float(1.0 - np.mean(nfg)) if nfg else 0.0,
@@ -261,144 +258,194 @@ def agg_metrics(per):
 GATE = 0.999   # structural gate: "argmax never calls any pixel a lesion"
 VARIANTS = [
     ("B0_single",     "single",       "union",     GATE, "单框 s=1.0（基线）"),
-    ("F_union",       "blind",        "union",     GATE, "全盲兜底 + 并集"),
-    ("F_majority",    "blind",        "majority",  GATE, "全盲兜底 + 多数投票"),
-    ("F_intersect",   "blind",        "intersect", GATE, "全盲兜底 + 交集"),
-    ("F_select",      "blind",        "select",    GATE, "全盲兜底 + 按 MedSAM 分数选"),
-    ("FR_select",     "blind+rescue", "select",    GATE, "兜底+欠自信救回 + 选"),
-    ("FR_union",      "blind+rescue", "union",     GATE, "兜底+欠自信救回 + 并集"),
+    ("F_union",       "blind",        "union",     GATE, "全盲兜底（含全图框）+ 并集"),
+    ("F_majority",    "blind",        "majority",  GATE, "全盲兜底（含全图框）+ 多数投票"),
+    ("F_intersect",   "blind",        "intersect", GATE, "全盲兜底（含全图框）+ 交集"),
+    ("F_select",      "blind",        "select",    GATE, "全盲兜底（含全图框）+ 按分数选"),
+    ("FC_majority",   "blind_center", "majority",  GATE, "全盲兜底（**仅中心框**）+ 多数投票"),
+    ("FC_intersect",  "blind_center", "intersect", GATE, "全盲兜底（**仅中心框**）+ 交集"),
+    ("FC_select",     "blind_center", "select",    GATE, "全盲兜底（**仅中心框**）+ 按分数选"),
+    ("FR_select",     "blind+rescue", "select",    GATE, "兜底 + 欠自信救回 + 选"),
     ("T_select",      "type",         "select",    GATE, "全类型定向 + 选"),
-    ("FR_select_g50", "blind+rescue", "select",    0.50, "只兜底 pmax<0.5（= 全盲）"),
-    ("FR_select_g20", "blind+rescue", "select",    0.20, "只兜底 pmax<0.2（更严）"),
+    ("FR_select_g20", "blind+rescue", "select",    0.20, "只兜底 pmax<0.2"),
     ("FR_select_g35", "blind+rescue", "select",    0.35, "只兜底 pmax<0.35"),
 ]
 
 
+def parse_args():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", default="unetpp")
+    ap.add_argument("--size", type=int, default=256)
+    ap.add_argument("--gray", action="store_true")
+    ap.add_argument("--ckpt", default="", help="checkpoint path template with {seed}; "
+                                              "empty -> results/p1_<model>_seed<k>.pth")
+    ap.add_argument("--seeds", default="0,1,2")
+    ap.add_argument("--out", default="tier_prompt")
+    return ap.parse_args()
+
+
 def main():
+    args = parse_args()
+    seeds = [int(s) for s in args.seeds.split(",") if s.strip()]
+
     index = build_index(); byname = {it["name"]: it for it in index}
     split = load_split()
     val = [byname[n] for n in split["val"]]
     test = [byname[n] for n in split["test"]]
 
-    ck = f"{RES}/viz_unetpp_seed0.pth"
-    if not os.path.exists(ck):
-        ck = f"{RES}/viz_unet_seed0.pth"
-    is_pp = "unetpp" in ck
-    print("coarse:", ck)
-    sig_fn = signals_fn("unetpp" if is_pp else "unet", 256 if is_pp else 128, not is_pp, ck)
-
-    print("computing coarse signals once ...")
-    signals = {r["name"]: sig_fn(r) for r in (val + test)}
-
-    vbox = [signals[r["name"]] for r in val if signals[r["name"]]["box"] is not None]
-    tau_d = float(np.percentile([s["shift"] for s in vbox], 80)) if vbox else 0.1
-    tau_s = float(np.percentile([s["ratio"] for s in vbox], 80)) if vbox else 2.0
-
     medsam = epq.load_medsam()
-    out = {"coarse": os.path.basename(ck), "tau_d": tau_d, "tau_s": tau_s, "variants": {},
-           "type_dist": {}, "gate_sweep": {}}
+    out = {"model": args.model, "size": args.size, "gray": bool(args.gray),
+           "seeds": seeds, "ckpts": [], "variants": {}, "per_seed": {}, "gate_sweep": {}}
 
-    print("\n%-14s %-12s %5s %8s %7s %8s %6s" %
-          ("variant", "policy", "gate", "dice", "nobox", "nor.fg", "multi"))
-    lesion_dice = {}
-    for name, policy, how, gate, desc in VARIANTS:
-        tau = {"p": gate, "d": tau_d, "s": tau_s}
-        per = evaluate(test, signals, medsam, tau, policy, how)
-        a = agg_metrics(per)
-        out["variants"][name] = {"desc": desc, "policy": policy, "agg": how,
-                                 "gate": gate, **a}
-        lesion_dice[name] = [p["dice"] for p in per if p["cls"] in ("benign", "malignant")]
-        print("%-14s %-12s %5.2f %8.4f %7.3f %8.4f %6d" %
-              (name, policy, gate, a["e2e_dice"], a["nobox_rate"], a["normal_fg"], a["multi_n"]))
-        if name == "FR_select":
-            types = [p["type"] for p in per]
-            out["type_dist"] = {t: types.count(t) for t in ("正确", "偏移", "尺度错", "欠自信", "全盲")}
-            out["per_image_FR_select"] = per
+    for seed in seeds:
+        ck = (args.ckpt.format(seed=seed) if args.ckpt
+              else f"{RES}/p1_{args.model}_seed{seed}.pth")
+        if not os.path.exists(ck):
+            print("MISSING", ck); continue
+        out["ckpts"].append(os.path.basename(ck))
+        print(f"\n=== seed {seed}  ({os.path.basename(ck)}) ===", flush=True)
 
-    from scipy.stats import wilcoxon
-    base = np.array(lesion_dice["B0_single"])
-    for name, d in lesion_dice.items():
-        v = np.array(d)
+        sig_fn = signals_fn(args.model, args.size, args.gray, ck)
+        signals = {r["name"]: sig_fn(r) for r in (val + test)}
+        vbox = [signals[r["name"]] for r in val if signals[r["name"]]["box"] is not None]
+        tau = {"p": GATE,
+               "d": float(np.percentile([s["shift"] for s in vbox], 80)) if vbox else 0.1,
+               "s": float(np.percentile([s["ratio"] for s in vbox], 80)) if vbox else 2.0}
+
+        les = [r for r in test if r["cls"] in ("benign", "malignant")]
+        nor = [r for r in test if r["cls"] == "normal"]
+        sweep = {}
+        for t in (0.10, 0.20, 0.35, 0.50):
+            fl = [r["name"] for r in les if signals[r["name"]]["pmax"] < t]
+            fn_ = [r["name"] for r in nor if signals[r["name"]]["pmax"] < t]
+            sweep[str(t)] = {"n_lesion": len(fl), "n_normal": len(fn_),
+                             "cov": sum(1 for n in fl if signals[n]["box"] is None)
+                                    / max(sum(1 for r in les if signals[r["name"]]["box"] is None), 1)}
+
+        ps = {"tau": tau, "variants": {}}
+        print("%-15s %7s %7s %7s" % ("variant", "dice", "nobox", "nor.fg"), flush=True)
+        for name, policy, how, gate, desc in VARIANTS:
+            tg = dict(tau); tg["p"] = gate
+            per = evaluate(test, signals, medsam, tg, policy, how)
+            a = agg_metrics(per)
+            ps["variants"][name] = dict(a, **{"desc": desc, "policy": policy, "agg": how,
+                                              "gate": gate,
+                                              "lesion_dice": [p["dice"] for p in per
+                                                              if p["cls"] in ("benign", "malignant")]})
+            print("%-15s %7.4f %7.3f %7.4f" % (name, a["e2e_dice"], a["nobox_rate"], a["normal_fg"]),
+                  flush=True)
+            if name == "FR_select":
+                ty = [p["type"] for p in per]
+                ps["type_dist"] = {t: ty.count(t) for t in ("正确", "偏移", "尺度错", "欠自信", "全盲")}
+                ps["per_image"] = per
+        ps["gate_sweep"] = sweep
+        out["per_seed"][str(seed)] = ps
+
+    if not out["per_seed"]:
+        raise SystemExit("no seed ran")
+
+    names = [n for n, *_ in VARIANTS]
+    for name in names:
+        rows = [out["per_seed"][s]["variants"][name] for s in out["per_seed"]]
+        agg = {}
+        for k in ("e2e_dice", "nobox_rate", "normal_fg", "normal_spec", "normal_clean", "multi_n"):
+            v = np.array([r[k] for r in rows], dtype=float)
+            agg[k] = float(v.mean())
+            agg[k + "_std"] = float(v.std(ddof=1)) if len(v) > 1 else 0.0
+        agg.update({"desc": rows[0]["desc"], "policy": rows[0]["policy"],
+                    "agg": rows[0]["agg"], "gate": rows[0]["gate"],
+                    "_dice_vec": np.mean([r["lesion_dice"] for r in rows], axis=0).tolist()})
+        out["variants"][name] = agg
+
+    base = np.array(out["variants"]["B0_single"]["_dice_vec"])
+    for name in names:
+        v = np.array(out["variants"][name]["_dice_vec"])
         if name == "B0_single" or np.allclose(v, base):
-            out["variants"][name]["p_vs_B0"] = 1.0
-            out["variants"][name]["n_better"] = 0
+            out["variants"][name].update({"p_vs_B0": 1.0, "n_better": 0, "n_worse": 0})
             continue
         try:
             _, p = wilcoxon(v, base)
         except ValueError:
             p = 1.0
-        out["variants"][name]["p_vs_B0"] = float(p)
-        out["variants"][name]["n_better"] = int(np.sum(v > base + 1e-9))
-        out["variants"][name]["n_worse"] = int(np.sum(v < base - 1e-9))
+        out["variants"][name].update({"p_vs_B0": float(p),
+                                      "n_better": int(np.sum(v > base + 1e-9)),
+                                      "n_worse": int(np.sum(v < base - 1e-9))})
 
-    # gate sensitivity: why tightening tau_p cannot raise the precision of "missing"
-    les = [r for r in test if r["cls"] in ("benign", "malignant")]
-    nor = [r for r in test if r["cls"] == "normal"]
-    for tau in (0.10, 0.20, 0.35, 0.50):
-        fl = [r["name"] for r in les if signals[r["name"]]["pmax"] < tau]
-        fn_ = [r["name"] for r in nor if signals[r["name"]]["pmax"] < tau]
-        out["gate_sweep"][str(tau)] = {
-            "n_lesion_flagged": len(fl), "n_normal_flagged": len(fn_),
-            "precision": len(fl) / max(len(fl) + len(fn_), 1),
-            "recall_of_nobox": sum(1 for n in fl if signals[n]["box"] is None)
-                                / max(sum(1 for r in les if signals[r["name"]]["box"] is None), 1)}
-    with open(f"{RES}/tier_prompt.json", "w") as f:
+    for t in ("0.1", "0.2", "0.35", "0.5"):
+        rs = [out["per_seed"][s]["gate_sweep"][t] for s in out["per_seed"]]
+        out["gate_sweep"][t] = {
+            "n_lesion": float(np.mean([r["n_lesion"] for r in rs])),
+            "n_normal": float(np.mean([r["n_normal"] for r in rs])),
+            "precision": float(np.mean([r["n_lesion"] / max(r["n_lesion"] + r["n_normal"], 1)
+                                        for r in rs])),
+            "cov": float(np.mean([r["cov"] for r in rs]))}
+    out["type_dist"] = {t: float(np.mean([out["per_seed"][s]["type_dist"][t]
+                                          for s in out["per_seed"]]))
+                        for t in out["per_seed"][list(out["per_seed"])[0]]["type_dist"]}
+
+    for name in names:
+        out["variants"][name].pop("_dice_vec", None)
+        for s in out["per_seed"]:
+            out["per_seed"][s]["variants"][name].pop("lesion_dice", None)
+
+    with open(f"{RES}/{args.out}.json", "w") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
 
     V = out["variants"]
     b0 = V["B0_single"]["e2e_dice"]
-    best_name, best_v = max(V.items(), key=lambda kv: kv[1]["e2e_dice"])
+    best = max(V.items(), key=lambda kv: kv[1]["e2e_dice"])
+    ms = lambda v, k="e2e_dice": (f"{v[k]:.4f}±{v[k+'_std']:.4f}" if v[k + "_std"] else f"{v[k]:.4f}")
 
-    L = ["# P3　误差类型感知的定向提示纠正（v3）\n",
-         f"> 粗模型 `{out['coarse']}`；τ_d=80分位={tau_d:.3f}、τ_s=80分位={tau_s:.2f}；"
-         "“全盲”判据**无阈值**：掩膜 argmax 从未判为病灶（无 ≥0.5 连通域）。\n",
-         "| 变体 | 说明 | 门控 | 聚合 | 端到端 Dice | Δ vs B0 | p | 无框率 | 正常图 fg | 正常图特异度 | 空掩膜率 |",
-         "|---|---|---|---|---|---|---|---|---|---|---|"]
-    for k in V:
+    L = ["# P3　误差类型感知的定向提示纠正（v4 · 150ep 权重）\n",
+         f"> 粗模型：`{', '.join(out['ckpts'])}`（P1，150ep + 早停 + 最优轮回滚，"
+         f"{len(seeds)} 种子均值）。τ_d、τ_s 取验证集 80 分位；"
+         "“全盲”判据**无阈值**：掩膜 argmax 从未判为病灶。\n",
+         "| 变体 | 说明 | 聚合 | Dice（3 种子） | Δ vs B0 | p | 无框率 | 正常图 fg | 特异度 |",
+         "|---|---|---|---|---|---|---|---|---|"]
+    for k in names:
         v = V[k]
-        g = "—" if v["gate"] > 0.9 else f"{v['gate']:.2f}"
-        pv = v.get("p_vs_B0", 1.0)
-        L.append(f"| {k} | {v['desc']} | {g} | {v['agg']} | **{v['e2e_dice']:.4f}** | "
-                 f"{v['e2e_dice'] - b0:+.4f} | {pv:.3f} | {v['nobox_rate']:.3f} | "
-                 f"{v['normal_fg']:.4f} | {v['normal_spec']:.4f} | {v['normal_clean']:.2f} |")
+        g = "" if v["gate"] > 0.9 else f"（gate {v['gate']:.2f}）"
+        L.append(f"| {k} | {v['desc']}{g} | {v['agg']} | **{ms(v)}** | "
+                 f"{v['e2e_dice']-b0:+.4f} | {v['p_vs_B0']:.3f} | {v['nobox_rate']:.3f} | "
+                 f"{v['normal_fg']:.4f} | {v['normal_spec']:.4f} |")
     L.append("")
-    L.append(f"**Dice 最优**：`{best_name}` = **{best_v['e2e_dice']:.4f}** vs 基线 B0 = {b0:.4f} → "
-             f"Δ = **{best_v['e2e_dice'] - b0:+.4f}**（p={best_v.get('p_vs_B0', 1.0):.3f}，"
-             f"{best_v.get('n_better', 0)} 张变好 / {best_v.get('n_worse', 0)} 张变差）；"
-             f"代价是正常图假阳 **{V['B0_single']['normal_fg']:.4f} → {best_v['normal_fg']:.4f}**。")
+    L.append(f"**Dice 最优**：`{best[0]}` = **{ms(best[1])}** vs B0 {ms(V['B0_single'])} → "
+             f"Δ = **{best[1]['e2e_dice']-b0:+.4f}**（p={best[1]['p_vs_B0']:.3f}，"
+             f"{best[1]['n_better']} 张好 / {best[1]['n_worse']} 张差）；正常图假阳 "
+             f"{V['B0_single']['normal_fg']:.4f} → {best[1]['normal_fg']:.4f}。")
     L.append("")
-    L.append("**聚合方式对比（同一批多候选，仅换聚合）**\n")
-    L.append("| 聚合 | Dice | 正常图 fg | 正常图特异度 |")
-    L.append("|---|---|---|---|")
-    for k in ("F_union", "F_majority", "F_intersect", "F_select"):
+    L.append("**兜底区域的选择（含全图框 vs 仅中心框）**\n")
+    L.append("| 区域提议 | 聚合 | Dice | 正常图 fg | 特异度 |")
+    L.append("|---|---|---|---|---|")
+    for k in ("F_majority", "F_intersect", "FC_majority", "FC_intersect"):
         v = V[k]
-        L.append(f"| {v['agg']} | {v['e2e_dice']:.4f} | {v['normal_fg']:.4f} | {v['normal_spec']:.4f} |")
+        L.append(f"| {'含全图框' if k.startswith('F_') else '仅中心框'} | {v['agg']} | "
+                 f"{ms(v)} | {v['normal_fg']:.4f} | {v['normal_spec']:.4f} |")
     L.append("")
-    L.append("**丢失判据的精度上限（为何收紧 τ_p 无效）**\n")
-    L.append("| τ_p | 判为低置信的病灶 | 判为低置信的正常图 | “是病灶”精度 | 覆盖全盲图比例 |")
+    L.append("**丢失判据的精度上限**（3 种子平均）\n")
+    L.append("| τ_p | 判为低置信的病灶 | 正常图 | “是病灶”精度 | 全盲覆盖 |")
     L.append("|---|---|---|---|---|")
     for k, d in out["gate_sweep"].items():
-        L.append(f"| {k} | {d['n_lesion_flagged']} | {d['n_normal_flagged']} | "
-                 f"{d['precision']:.2f} | {d['recall_of_nobox']:.2f} |")
+        L.append(f"| {k} | {d['n_lesion']:.1f} | {d['n_normal']:.1f} | "
+                 f"{d['precision']:.2f} | {d['cov']:.2f} |")
     L.append("")
-    L.append("**误差类型分布（测试集 116 张）**：" +
-             "、".join(f"{k} {v}" for k, v in out["type_dist"].items()))
-    open(f"{RES}/tier_prompt.md", "w").write("\n".join(L) + "\n")
+    L.append("**误差类型分布（116 张，3 种子平均）**：" +
+             "、".join(f"{k} {v:.1f}" for k, v in out["type_dist"].items()))
+    open(f"{RES}/{args.out}.md", "w").write("\n".join(L) + "\n")
 
-    fig, ax = plt.subplots(figsize=(9, 4))
-    ks = list(V.keys())
-    ax.bar(range(len(ks)), [V[k]["e2e_dice"] for k in ks],
-           color=["#888" if k == "B0_single" else "#c33" for k in ks])
+    fig, ax = plt.subplots(figsize=(9.5, 4))
+    ax.bar(range(len(names)), [V[k]["e2e_dice"] for k in names],
+           yerr=[V[k]["e2e_dice_std"] for k in names], capsize=3,
+           color=["#888" if k == "B0_single" else "#c33" for k in names])
     ax.axhline(b0, ls="--", c="k", lw=1, label=f"B0 {b0:.4f}")
-    ax.set_xticks(range(len(ks)))
-    ax.set_xticklabels(ks, rotation=25, ha="right", fontsize=8)
+    ax.set_xticks(range(len(names))); ax.set_xticklabels(names, rotation=25, ha="right", fontsize=8)
     ax.set_ylabel("end-to-end Dice (96 lesions)")
-    ax.set_title("P3 v3: fallback prompts x aggregation")
+    ax.set_title("P3 v4 (150ep weights, 3 seeds): fallback prompts x aggregation")
     ax.legend(); ax.grid(axis="y", alpha=0.3)
-    fig.tight_layout(); fig.savefig(f"{RES}/tier_prompt.png", dpi=140)
+    fig.tight_layout(); fig.savefig(f"{RES}/{args.out}.png", dpi=140)
 
     print("\n".join(L))
-    print("wrote tier_prompt.{json,md,png}")
+    print(f"wrote {args.out}.{{json,md,png}}")
 
 
 if __name__ == "__main__":

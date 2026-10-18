@@ -8,7 +8,8 @@ from busi_common import build_index, load_split  # noqa
 import diag_tier_prompt as P  # noqa
 
 RES = "/mnt/workspace/busi_p0/results"
-ck = f"{RES}/viz_unetpp_seed0.pth"
+ck = sys.argv[1] if len(sys.argv) > 1 else f"{RES}/p1_unetpp_seed0.pth"
+print("coarse ckpt:", ck)
 sig_fn = P.signals_fn("unetpp", 256, False, ck)
 
 index = build_index(); byname = {it["name"]: it for it in index}

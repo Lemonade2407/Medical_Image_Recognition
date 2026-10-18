@@ -1,0 +1,24 @@
+Loading weights:   0%|          | 0/315 [00:00<?, ?it/s]Loading weights: 100%|██████████| 315/315 [00:00<00:00, 7100.16it/s]
+The tied weights mapping and config for this model specifies to tie shared_image_embedding.positional_embedding to prompt_encoder.shared_embedding.positional_embedding, but both are present in the checkpoints, so we will NOT tie them. You should update the config with `tie_word_embeddings=False` to silence this warning
+The image processor of type `SamImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. 
+seed 0: p1_unetpp_seed0.pth
+/mnt/workspace/busi_p0/src/diag_tier_prompt.py:53: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(ckpt, map_location="cpu")
+  B0_single
+  FC_intersect
+  FC_majority
+  FC_select
+seed 1: p1_unetpp_seed1.pth
+  B0_single
+  FC_intersect
+  FC_majority
+  FC_select
+seed 2: p1_unetpp_seed2.pth
+  B0_single
+  FC_intersect
+  FC_majority
+  FC_select
+
+archived -> /mnt/workspace/busi_p0/archive/P3_v4_2026-10-18
+files: 26   size: 3.61 MB
+blind lesions(seed0) 10 / blind normals 11
