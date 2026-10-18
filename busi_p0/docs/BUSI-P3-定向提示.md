@@ -35,11 +35,10 @@ cd /mnt/workspace/busi_p0/src
 | `code/probe_tier2.py` | 诊断：正常图与漏检病灶的 pmax 重叠（判据精度上限的证据） |
 | `code/archive_p3.py` | 本归档生成器 |
 | `results/tier_prompt.json` | 11 个变体的全部指标 + 逐图记录 + 门控扫描 |
-| `results/tier_prompt.md` / `.png` | 报告表 + 柱状图 |
+| `results/tier_prompt.png` | 柱状图（报告表见 `docs/BUSI-P3-结果表.md`） |
 | `results/tier_prompt_v3.log` | 完整运行日志 |
 | `results/env.json` | 运行环境 |
 | `results/busi_seed0.json` | 冻结划分（546/118/116） |
-| `results/BUSI-算法优化方案.md` | 归档时的方案文档快照 |
 | `preds/B0_single.npz` 等 4 个 | 116 张测试图的**布尔预测掩膜**（原始分辨率，键=图像名） |
 | `tables/variants.csv` | 变体指标表 |
 | `tables/per_image.csv` | 逐图 Dice / fg / 类型 / 候选数 |

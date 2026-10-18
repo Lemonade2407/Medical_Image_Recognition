@@ -2,11 +2,14 @@
 
 Writes archive/P3_v3_<date>/ with:
   code/      the exact scripts that produced the numbers
-  results/   tier_prompt.json / .md / .png + run log + env + frozen split
+  results/   tier_prompt.json / .png + run log + env + frozen split
   preds/     per-image boolean masks (npz) for B0, F_intersect, F_majority
   figs/      qualitative grids for the 25 "blind" images
   tables/    variants.csv, per_image.csv
-  MANIFEST.md + sha256sums.txt
+  sha256sums.txt
+
+Documents go to docs/ instead of the archive:
+  docs/BUSI-P3-定向提示.md (manifest), docs/BUSI-P3-结果表.md (report table)
 
 The masks are dumped here (not during the main run) so the archived results
 stay byte-identical to what the report quotes.
@@ -172,14 +175,15 @@ def main():
          f"Blind normals (n={len(nor)}) -- GT empty, all red pixels are false positives")
 
     # copies
-    for f in ("tier_prompt.json", "tier_prompt.md", "tier_prompt.png",
+    for f in ("tier_prompt.json", "tier_prompt.png",
               "tier_prompt_v3.log", "env.json"):
         if os.path.exists(f"{RES}/{f}"):
             shutil.copy2(f"{RES}/{f}", f"{ARCH}/results/{f}")
+    if os.path.exists(f"{RES}/tier_prompt.md"):
+        shutil.copy2(f"{RES}/tier_prompt.md", f"{ROOT}/docs/BUSI-P3-结果表.md")
     for f in ("diag_tier_prompt.py", "probe_tier.py", "probe_tier2.py", "archive_p3.py"):
         shutil.copy2(f"{SRC}/{f}", f"{ARCH}/code/{f}")
     shutil.copy2(f"{ROOT}/splits/busi_seed0.json", f"{ARCH}/results/busi_seed0.json")
-    shutil.copy2(f"{ROOT}/docs/BUSI-算法优化方案.md", f"{ARCH}/results/BUSI-算法优化方案.md")
 
     # manifest
     b0 = j["variants"]["B0_single"]; fm = j["variants"]["F_majority"]
@@ -216,11 +220,10 @@ def main():
          "| `code/probe_tier2.py` | 诊断：正常图与漏检病灶的 pmax 重叠（判据精度上限的证据） |",
          "| `code/archive_p3.py` | 本归档生成器 |",
          "| `results/tier_prompt.json` | 11 个变体的全部指标 + 逐图记录 + 门控扫描 |",
-         "| `results/tier_prompt.md` / `.png` | 报告表 + 柱状图 |",
+         "| `results/tier_prompt.png` | 柱状图（报告表见 `docs/BUSI-P3-结果表.md`） |",
          "| `results/tier_prompt_v3.log` | 完整运行日志 |",
          "| `results/env.json` | 运行环境 |",
          "| `results/busi_seed0.json` | 冻结划分（546/118/116） |",
-         "| `results/BUSI-算法优化方案.md` | 归档时的方案文档快照 |",
          "| `preds/B0_single.npz` 等 4 个 | 116 张测试图的**布尔预测掩膜**（原始分辨率，键=图像名） |",
          "| `tables/variants.csv` | 变体指标表 |",
          "| `tables/per_image.csv` | 逐图 Dice / fg / 类型 / 候选数 |",
@@ -244,7 +247,7 @@ def main():
          "3. 掩膜为原始分辨率布尔图；npz 键把 `/` 替换为 `__`。",
          "4. 无随机性，重跑应逐位复现（MedSAM 推理确定性）。",
          ""]
-    open(f"{ARCH}/MANIFEST.md", "w").write("\n".join(M) + "\n")
+    open(f"{ROOT}/docs/BUSI-P3-定向提示.md", "w").write("\n".join(M) + "\n")
 
     # checksums
     chk = []
