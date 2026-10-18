@@ -1,0 +1,91 @@
+Loading weights:   0%|          | 0/315 [00:00<?, ?it/s]Loading weights: 100%|██████████| 315/315 [00:00<00:00, 7340.36it/s]
+The tied weights mapping and config for this model specifies to tie shared_image_embedding.positional_embedding to prompt_encoder.shared_embedding.positional_embedding, but both are present in the checkpoints, so we will NOT tie them. You should update the config with `tie_word_embeddings=False` to silence this warning
+The image processor of type `SamImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. 
+
+=== seed 0  (p1_unetpp_seed0.pth) ===
+/mnt/workspace/busi_p0/src/diag_tier_prompt.py:53: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(ckpt, map_location="cpu")
+variant            dice   nobox  nor.fg
+B0_single        0.6128   0.104  0.0065
+F_union          0.6283   0.000  0.0881
+F_majority       0.6394   0.000  0.0408
+F_intersect      0.6353   0.000  0.0192
+F_select         0.6314   0.000  0.0669
+FC_majority      0.6393   0.000  0.0408
+FC_intersect     0.6353   0.000  0.0192
+FC_select        0.6378   0.000  0.0517
+FR_select        0.6314   0.000  0.0670
+T_select         0.6278   0.000  0.0702
+FR_select_g20    0.6314   0.000  0.0669
+FR_select_g35    0.6314   0.000  0.0669
+
+=== seed 1  (p1_unetpp_seed1.pth) ===
+variant            dice   nobox  nor.fg
+B0_single        0.6721   0.083  0.0007
+F_union          0.6858   0.000  0.1152
+F_majority       0.6944   0.000  0.0516
+F_intersect      0.6888   0.000  0.0201
+F_select         0.6895   0.000  0.0777
+FC_majority      0.6945   0.000  0.0516
+FC_intersect     0.6888   0.000  0.0201
+FC_select        0.6943   0.000  0.0625
+FR_select        0.6895   0.000  0.0777
+T_select         0.7045   0.000  0.0778
+FR_select_g20    0.6868   0.031  0.0611
+FR_select_g35    0.6895   0.000  0.0777
+
+=== seed 2  (p1_unetpp_seed2.pth) ===
+variant            dice   nobox  nor.fg
+B0_single        0.6776   0.083  0.0038
+F_union          0.6890   0.021  0.0471
+F_majority       0.6966   0.021  0.0210
+F_intersect      0.6905   0.021  0.0099
+F_select         0.6924   0.021  0.0471
+FC_majority      0.6967   0.021  0.0210
+FC_intersect     0.6905   0.021  0.0099
+FC_select        0.6986   0.021  0.0319
+FR_select        0.6930   0.000  0.0473
+T_select         0.6776   0.000  0.0487
+FR_select_g20    0.6909   0.031  0.0471
+FR_select_g35    0.6924   0.021  0.0471
+# P3　误差类型感知的定向提示纠正（v4 · 150ep 权重）
+
+> 粗模型：`p1_unetpp_seed0.pth, p1_unetpp_seed1.pth, p1_unetpp_seed2.pth`（P1，150ep + 早停 + 最优轮回滚，3 种子均值）。τ_d、τ_s 取验证集 80 分位；“全盲”判据**无阈值**：掩膜 argmax 从未判为病灶。
+
+| 变体 | 说明 | 聚合 | Dice（3 种子） | Δ vs B0 | p | 无框率 | 正常图 fg | 特异度 |
+|---|---|---|---|---|---|---|---|---|
+| B0_single | 单框 s=1.0（基线） | union | **0.6542±0.0359** | +0.0000 | 1.000 | 0.090 | 0.0036 | 0.9964 |
+| F_union | 全盲兜底（含全图框）+ 并集 | union | **0.6677±0.0342** | +0.0135 | 0.002 | 0.007 | 0.0835 | 0.9165 |
+| F_majority | 全盲兜底（含全图框）+ 多数投票 | majority | **0.6768±0.0324** | +0.0226 | 0.002 | 0.007 | 0.0378 | 0.9622 |
+| F_intersect | 全盲兜底（含全图框）+ 交集 | intersect | **0.6715±0.0314** | +0.0174 | 0.060 | 0.007 | 0.0164 | 0.9836 |
+| F_select | 全盲兜底（含全图框）+ 按分数选 | select | **0.6711±0.0344** | +0.0169 | 0.002 | 0.007 | 0.0639 | 0.9361 |
+| FC_majority | 全盲兜底（**仅中心框**）+ 多数投票 | majority | **0.6768±0.0325** | +0.0226 | 0.002 | 0.007 | 0.0378 | 0.9622 |
+| FC_intersect | 全盲兜底（**仅中心框**）+ 交集 | intersect | **0.6715±0.0314** | +0.0174 | 0.060 | 0.007 | 0.0164 | 0.9836 |
+| FC_select | 全盲兜底（**仅中心框**）+ 按分数选 | select | **0.6769±0.0339** | +0.0227 | 0.003 | 0.007 | 0.0487 | 0.9513 |
+| FR_select | 兜底 + 欠自信救回 + 选 | select | **0.6713±0.0346** | +0.0171 | 0.001 | 0.000 | 0.0640 | 0.9360 |
+| T_select | 全类型定向 + 选 | select | **0.6700±0.0389** | +0.0158 | 0.069 | 0.000 | 0.0656 | 0.9344 |
+| FR_select_g20 | 只兜底 pmax<0.2（gate 0.20） | select | **0.6697±0.0332** | +0.0155 | 0.005 | 0.021 | 0.0584 | 0.9416 |
+| FR_select_g35 | 只兜底 pmax<0.35（gate 0.35） | select | **0.6711±0.0344** | +0.0169 | 0.002 | 0.007 | 0.0639 | 0.9361 |
+
+**Dice 最优**：`FC_select` = **0.6769±0.0339** vs B0 0.6542±0.0359 → Δ = **+0.0227**（p=0.003，11 张好 / 0 张差）；正常图假阳 0.0036 → 0.0487。
+
+**兜底区域的选择（含全图框 vs 仅中心框）**
+
+| 区域提议 | 聚合 | Dice | 正常图 fg | 特异度 |
+|---|---|---|---|---|
+| 含全图框 | majority | 0.6768±0.0324 | 0.0378 | 0.9622 |
+| 含全图框 | intersect | 0.6715±0.0314 | 0.0164 | 0.9836 |
+| 仅中心框 | majority | 0.6768±0.0325 | 0.0378 | 0.9622 |
+| 仅中心框 | intersect | 0.6715±0.0314 | 0.0164 | 0.9836 |
+
+**丢失判据的精度上限**（3 种子平均）
+
+| τ_p | 判为低置信的病灶 | 正常图 | “是病灶”精度 | 全盲覆盖 |
+|---|---|---|---|---|
+| 0.1 | 4.7 | 8.7 | 0.35 | 0.52 |
+| 0.2 | 6.7 | 9.7 | 0.41 | 0.75 |
+| 0.35 | 8.0 | 11.3 | 0.41 | 0.92 |
+| 0.5 | 8.0 | 13.3 | 0.37 | 0.92 |
+
+**误差类型分布（116 张，3 种子平均）**：正确 66.7、偏移 19.7、尺度错 7.7、欠自信 2.7、全盲 19.3
+wrote tier_prompt_150ep_pgbf662.{json,md,png}

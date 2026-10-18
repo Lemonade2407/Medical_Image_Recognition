@@ -1,6 +1,6 @@
 """Archive all P3 v4 artifacts (150-epoch weights, 3 seeds).
 
-Layout (data only, per docs/README.md convention):
+Layout (data only; explanation docs live in docs/):
   archive/P3_v4_<date>/
     code/    exact scripts
     results/ metrics json/md/png + run log + env + frozen split

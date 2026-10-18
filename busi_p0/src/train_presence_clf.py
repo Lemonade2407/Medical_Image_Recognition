@@ -246,6 +246,7 @@ def main():
         per_seed[str(s)] = {
             "best_val_acc": r["best_val_acc"], "best_epoch": r["best_epoch"],
             "epochs_run": r["epochs_run"],
+            "val_scores": r["val_scores"].tolist(),
             "auc": auc_score(r["test_scores"], test_labels),
             "normal_fp": fp, "lesion_recall": rec,
             "blind": {"n": len(bs), "hits": int(hits),
@@ -267,12 +268,13 @@ def main():
     summary = {
         "arch": args.arch, "size": args.size, "gray": bool(args.gray),
         "seeds": seeds, "threshold": thr, "threshold_source": thr_src,
+        "val_names": [it["name"] for it in va],
         "val": {"normal_fp": float(v_fp), "lesion_recall": float(v_rec),
                 "fp_budget": args.fp_budget},
         "per_seed": per_seed,
         "aggregate": {"auc": agg("auc"), "normal_fp": agg("normal_fp"),
                       "lesion_recall": agg("lesion_recall"),
-                      "blind_rate": agg("rate", "blind")},
+                      "blind_rate": agg("blind", "rate")},
         "blind_totals": {"hits": hits, "n": ns},
     }
     summary["pass"] = bool(mean_rate >= 0.75 and fp_mean is not None and fp_mean <= 0.10)

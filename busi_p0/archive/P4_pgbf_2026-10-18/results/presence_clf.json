@@ -1,0 +1,98 @@
+{
+  "arch": "resnet18",
+  "size": 128,
+  "gray": false,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "threshold": 0.8,
+  "threshold_source": "val(fp<=10%, max recall)",
+  "val": {
+    "normal_fp": 0.05,
+    "lesion_recall": 0.9591836734693877,
+    "fp_budget": 0.1
+  },
+  "per_seed": {
+    "0": {
+      "best_val_acc": 0.9067796610169492,
+      "best_epoch": 1,
+      "epochs_run": 11,
+      "auc": 0.8473958333333333,
+      "normal_fp": 0.5,
+      "lesion_recall": 0.8958333333333334,
+      "blind": {
+        "n": 10,
+        "hits": 5,
+        "rate": 0.5,
+        "missed": [
+          "benign/benign (224).png",
+          "benign/benign (233).png",
+          "benign/benign (235).png",
+          "benign/benign (247).png",
+          "benign/benign (417).png"
+        ]
+      }
+    },
+    "1": {
+      "best_val_acc": 0.9322033898305084,
+      "best_epoch": 22,
+      "epochs_run": 32,
+      "auc": 0.9697916666666667,
+      "normal_fp": 0.35,
+      "lesion_recall": 0.96875,
+      "blind": {
+        "n": 8,
+        "hits": 8,
+        "rate": 1.0,
+        "missed": []
+      }
+    },
+    "2": {
+      "best_val_acc": 0.9576271186440678,
+      "best_epoch": 9,
+      "epochs_run": 19,
+      "auc": 0.959375,
+      "normal_fp": 0.3,
+      "lesion_recall": 0.9479166666666666,
+      "blind": {
+        "n": 6,
+        "hits": 6,
+        "rate": 1.0,
+        "missed": []
+      }
+    }
+  },
+  "aggregate": {
+    "auc": {
+      "mean": 0.9255208333333335,
+      "std": 0.06785840739997596
+    },
+    "normal_fp": {
+      "mean": 0.3833333333333333,
+      "std": 0.10408329997330665
+    },
+    "lesion_recall": {
+      "mean": 0.9375,
+      "std": 0.037557825786083195
+    },
+    "blind_rate": {
+      "mean": 0.8333333333333334,
+      "std": 0.28867513459481287
+    }
+  },
+  "blind_totals": {
+    "hits": [
+      5,
+      8,
+      6
+    ],
+    "n": [
+      10,
+      8,
+      6
+    ]
+  },
+  "pass": false
+}

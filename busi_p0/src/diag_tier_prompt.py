@@ -164,7 +164,11 @@ def diagnose(sig, tau):
 
 
 def candidates(sig, tau, policy):
-    """policy: single | blind | blind_center | blind+rescue | type."""
+    """policy: single | blind | blind_center | blind+rescue | type.
+
+    The presence gate (PGBF) is applied in `evaluate`, so that it is switched on
+    by `--presence` uniformly rather than per variant.
+    """
     if policy == "single":
         return [] if sig["box"] is None else [expand(sig["box"], 1.0)]
 

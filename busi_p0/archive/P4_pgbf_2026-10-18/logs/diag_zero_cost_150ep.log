@@ -1,0 +1,39 @@
+# 零成本诊断（1）：监督式漏检来源分解
+
+## unet（变体 A2+A1+A3，n=96 张病灶图）
+
+| 维度 | 分桶 | 张数 | 召回 | 完全漏检率 | Dice | FN 像素占比 |
+|---|---|---|---|---|---|---|
+| 尺寸 | 小（相对面积≤4.0%） | 32 | 0.672 | 0.219 | 0.600 | 6.2% |
+| 尺寸 | 中（≤9.9%） | 32 | 0.627 | 0.188 | 0.620 | 25.3% |
+| 尺寸 | 大（>9.9%） | 32 | 0.716 | 0.094 | 0.739 | 68.5% |
+| 对比度 | 低对比 | 32 | 0.297 | 0.406 | 0.345 | 78.8% |
+| 对比度 | 中对比 | 32 | 0.795 | 0.094 | 0.729 | 12.5% |
+| 对比度 | 高对比 | 32 | 0.922 | 0.000 | 0.884 | 8.7% |
+
+## transunet（变体 A2+A1+A3，n=96 张病灶图）
+
+| 维度 | 分桶 | 张数 | 召回 | 完全漏检率 | Dice | FN 像素占比 |
+|---|---|---|---|---|---|---|
+| 尺寸 | 小（相对面积≤4.0%） | 32 | 0.833 | 0.094 | 0.724 | 5.7% |
+| 尺寸 | 中（≤9.9%） | 32 | 0.735 | 0.062 | 0.703 | 31.0% |
+| 尺寸 | 大（>9.9%） | 32 | 0.813 | 0.031 | 0.769 | 63.2% |
+| 对比度 | 低对比 | 32 | 0.546 | 0.156 | 0.504 | 77.9% |
+| 对比度 | 中对比 | 32 | 0.904 | 0.031 | 0.803 | 11.6% |
+| 对比度 | 高对比 | 32 | 0.930 | 0.000 | 0.888 | 10.6% |
+
+/mnt/workspace/code/segment-anything/segment_anything/build_sam.py:105: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(f)
+Loading weights:   0%|          | 0/315 [00:00<?, ?it/s]Loading weights:  64%|██████▍   | 202/315 [00:00<00:00, 1922.81it/s]Loading weights: 100%|██████████| 315/315 [00:00<00:00, 1890.87it/s]
+The tied weights mapping and config for this model specifies to tie shared_image_embedding.positional_embedding to prompt_encoder.shared_embedding.positional_embedding, but both are present in the checkpoints, so we will NOT tie them. You should update the config with `tie_word_embeddings=False` to silence this warning
+The image processor of type `SamImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. 
+done medsam
+done sam
+/mnt/workspace/busi_p0/src/eval_prompt_quality.py:101: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(ckpt, map_location="cpu")
+auto medsam<-unet: box IoU 0.601 -> dice 0.7135
+auto sam<-unet: box IoU 0.601 -> dice 0.6495
+auto medsam<-unetpp: box IoU 0.572 -> dice 0.6839
+auto sam<-unetpp: box IoU 0.572 -> dice 0.6537
+
+wrote diag_fn_decomp.{md,json} and diag_box_curve.{json,png}

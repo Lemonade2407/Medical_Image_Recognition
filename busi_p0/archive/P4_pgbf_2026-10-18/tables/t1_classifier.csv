@@ -1,0 +1,3 @@
+classifier,arch,size,threshold,thr_source,blind_rate,blind_hits,blind_n,normal_fp,auc
+resnet18,resnet18,128,0.8000,"val(fp<=10%, max recall)",0.833,5/8/6,10/8/6,0.383,0.926
+effb0,efficientnet_b0,224,0.5000,"val(fp<=10%, max recall)",1.000,10/8/6,10/8/6,0.250,0.957

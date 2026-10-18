@@ -1,0 +1,9 @@
+seed 0: val_acc 0.9068  (ep 1/11)
+seed 1: val_acc 0.9322  (ep 22/32)
+seed 2: val_acc 0.9576  (ep 9/19)
+
+threshold 0.80 [val(fp<=10%, max recall)]  val FP 0.050 / rec 0.959
+blind hits per seed: [(5, 10), (8, 8), (6, 6)] mean rate 0.833
+test normal FP: {'mean': 0.3833333333333333, 'std': 0.10408329997330665}
+FAIL -> results/presence_clf.json
+gate input -> results/presence_clf_scores.json
