@@ -6,7 +6,7 @@ Outputs (to results/viz/):
   qualitative_lesion.png   6 lesion test images (3 benign + 3 malignant) x 9 rows
   qualitative_normal.png   3 normal test images x (原图/GT + 4 supervised)
 
-Run AFTER the supervised checkpoints (viz_*.pth) exist.
+Run AFTER the supervised checkpoints (p1_*.pth) exist.
 """
 import os
 import sys
@@ -199,7 +199,7 @@ def main():
            ("UNet++", "unetpp", 256, False), ("TransUNet", "transunet", 256, False)]
     preds = {name: {} for name, *_ in sup}
     for name, model, size, gray in sup:
-        ck = os.path.join(RESULTS, f"viz_{model}_seed0.pth")
+        ck = os.path.join(RESULTS, f"p1_{model}_seed0.pth")
         if not os.path.exists(ck):
             print("MISSING ckpt (skip)", ck); continue
         for rec in samples:

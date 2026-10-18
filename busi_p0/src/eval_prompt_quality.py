@@ -170,8 +170,8 @@ def main():
     # auto boxes (U-Net / UNet++) -> medsam/sam
     auto = {}
     for tag, mname, size, gray, ck in [
-            ("unet", "unet", 128, True, f"{RES}/viz_unet_seed0.pth"),
-            ("unetpp", "unetpp", 256, False, f"{RES}/viz_unetpp_seed0.pth")]:
+            ("unet", "unet", 128, True, f"{RES}/p1_unet_seed0.pth"),
+            ("unetpp", "unetpp", 256, False, f"{RES}/p1_unetpp_seed0.pth")]:
         if not os.path.exists(ck):
             print("skip auto box, no ckpt", ck); continue
         fn = sup_box_fn(mname, size, gray, ck)

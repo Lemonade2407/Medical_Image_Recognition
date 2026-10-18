@@ -3,8 +3,7 @@
 Reads:
   results/p1_<model>_seed<k>.json          supervised main table (150ep CE+Dice, 3 seeds)
   results/postproc_prompt_<method>.json    prompt A group
-  results/ab_summary.json                  prompt A summary
-  results/p1a_summary.json                 supervised 150ep + A summary
+  results/p1a_summary.json             supervised 150ep + A summary
   results/env.json
 Writes:
   docs/七种模型对比.md
@@ -88,6 +87,23 @@ P1A_CFG = [("unet", "U-Net", 128, "g", ["ce_dice", "tversky", "boundary"]),
            ("unetpp", "UNet++", 256, "rgb", ["ce_dice", "tversky"]),
            ("transunet", "TransUNet", 256, "rgb", ["ce_dice", "tversky"])]
 A_VARIANTS = ["baseline", "A1_postproc", "A2_tta", "A3_threshold", "A2+A1+A3"]
+PROMPT_VARIANTS = ["baseline", "A1_postproc", "A2_tta", "A3_threshold", "A2+A1+A3"]
+
+
+def collect_prompt_a():
+    """Read postproc_prompt_*.json directly (prompt methods are epoch-agnostic)."""
+    rows = []
+    for m in ("sam", "medsam", "bussam"):
+        rp = load(f"postproc_prompt_{m}.json")
+        if not rp:
+            continue
+        av = {v: float(rp["variants"][v]["agg"]["dice_lesion"])
+              for v in PROMPT_VARIANTS if v in rp["variants"]}
+        if not av:
+            continue
+        rows.append({"method": m, "a": {v: {"dice": x} for v, x in av.items()},
+                     "best_variant": max(av, key=av.get)})
+    return rows
 
 
 def collect_p1a():
@@ -273,9 +289,9 @@ def main():
     A("")
 
     # ---- 7. A/B optimisation ----
-    ab = load("ab_summary.json")
+    prompt_rows = collect_prompt_a()
     p1a_rows = collect_p1a()
-    if p1a_rows or (ab and ab.get("prompt")):
+    if p1a_rows or prompt_rows:
         A("## 七、A/B 优化结果（统一协议）\n")
         A("> **B** = 损失函数重训（Tversky α=0.3/β=0.7、Boundary；3 种子）；")
         A("> **A** = 推理侧零训练成本项：**A1** 最大连通域+填洞+面积阈值、**A2** 多尺度+翻转 TTA、**A3** 验证集选阈值。\n")
@@ -309,11 +325,11 @@ def main():
                     A(f"> **U-Net（1.9M）+ 同配置 = {unet_ce['best_mean']:.4f}**，"
                       f"与 ~105M 的 {br['label']} 仅差 **{br['best_mean']-unet_ce['best_mean']:.3f}**。")
                 A("")
-        if ab and ab.get("prompt"):
+        if prompt_rows:
             A("### 7.2 提示式（仅 A，无 B）\n")
             A("| 方法 | baseline | A1 后处理 | A2 TTA | A3 阈值 | A2+A1+A3 | 最优变体 |")
             A("|---|---|---|---|---|---|---|")
-            for r in ab["prompt"]:
+            for r in prompt_rows:
                 a = r["a"]
 
                 def g(v):

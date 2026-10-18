@@ -93,7 +93,7 @@ def fn_decomposition(src_json, variant, tag):
 
 
 # ============================ (2) box-quality curve ============================ #
-def box_curve(recs, sup_tag="postproc", viz_tag="viz"):
+def box_curve(recs, sup_tag="postproc_p1", viz_tag="p1"):
     predictor = epq.load_sam()
     mm, mp = epq.load_medsam()
 
@@ -140,10 +140,10 @@ def main():
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--part1-only", action="store_true", help="only the FN decomposition (no inference)")
-    ap.add_argument("--sup-tag", default="postproc",
-                    help="postproc JSON prefix (postproc=24ep, postproc_p1=150ep)")
-    ap.add_argument("--viz-tag", default="viz",
-                    help="checkpoint prefix for auto boxes (viz=24ep, p1=150ep)")
+    ap.add_argument("--sup-tag", default="postproc_p1",
+                    help="postproc JSON prefix (default: postproc_p1, 150ep)")
+    ap.add_argument("--viz-tag", default="p1",
+                    help="checkpoint prefix for auto boxes (default: p1, 150ep)")
     args = ap.parse_args()
     byname = {it["name"]: it for it in build_index()}
     split = load_split()

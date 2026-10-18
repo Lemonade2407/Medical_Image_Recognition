@@ -3,7 +3,7 @@
 cd /mnt/workspace/busi_p0
 PY=/mnt/workspace/busi_p0/.venv/bin/python
 for i in $(seq 1 80); do
-  if ls results/viz_unet_seed0.pth results/viz_attunet_seed0.pth results/viz_unetpp_seed0.pth results/viz_transunet_seed0.pth >/dev/null 2>&1; then
+  if ls results/p1_unet_seed0.pth results/p1_attunet_seed0.pth results/p1_unetpp_seed0.pth results/p1_transunet_seed0.pth >/dev/null 2>&1; then
     echo "all ckpts ready $(date)"; break
   fi
   sleep 30

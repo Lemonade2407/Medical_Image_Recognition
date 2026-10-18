@@ -27,9 +27,9 @@ def ms(v):
 
 
 def main():
-    L = ["# P1 权重 + A 组（后处理 / TTA / 阈值）\n",
+    L = ["# 150ep 权重 + A 组（后处理 / TTA / 阈值）\n",
          "> 在 150 epoch（+早停）的权重上叠加推理侧 A 组，检验 A 组在**充分训练**下是否仍然有效。\n",
-         "| 模型 | 损失 | P1 baseline | P1+A1 | P1+A2 | P1+A3 | P1+A2+A1+A3 | 最优变体 | Δ(A) | HD95(base→best) |",
+         "| 模型 | 损失 | baseline | A1 | A2 | A3 | A2+A1+A3 | 最优变体 | Δ(A) | HD95(base→best) |",
          "|---|---|---|---|---|---|---|---|---|---|"]
     rows = []
     for model, label, size, mode, losses in CFG:
@@ -59,7 +59,8 @@ def main():
             d = (bv - bm_a) if (best and bm_a is not None) else None
             hb = float(np.mean(hd["baseline"])) if hd["baseline"] else None
             hbest = float(np.mean(hd[best])) if (best and hd[best]) else None
-            L.append(f"| {label} | {loss} | {ms(base)} | {ms(av['A1_postproc'])} | {ms(av['A2_tta'])} | "
+            L.append(f"| {label} | {loss} | {ms(av['baseline']) if av['baseline'] else ms(base)} | "
+                     f"{ms(av['A1_postproc'])} | {ms(av['A2_tta'])} | "
                      f"{ms(av['A3_threshold'])} | {ms(av['A2+A1+A3'])} | {best or '—'} | "
                      f"{(('%+.4f' % d) if d is not None else '—')} | "
                      f"{(('%.1f→%.1f' % (hb, hbest)) if (hb is not None and hbest is not None) else '—')} |")
