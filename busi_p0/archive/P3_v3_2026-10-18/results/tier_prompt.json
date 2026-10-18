@@ -1,0 +1,1261 @@
+{
+  "coarse": "viz_unetpp_seed0.pth",
+  "tau_d": 0.028420438172694407,
+  "tau_s": 1.4710820763402026,
+  "variants": {
+    "B0_single": {
+      "desc": "单框 s=1.0（基线）",
+      "policy": "single",
+      "agg": "union",
+      "gate": 0.999,
+      "e2e_dice": 0.6172155007763317,
+      "nobox_rate": 0.11458333333333333,
+      "nobox_n": 11,
+      "normal_fg": 0.0003808519638768186,
+      "normal_clean": 0.9,
+      "normal_spec": 0.9996191480361232,
+      "multi_n": 0,
+      "p_vs_B0": 1.0,
+      "n_better": 0
+    },
+    "F_union": {
+      "desc": "全盲兜底 + 并集",
+      "policy": "blind",
+      "agg": "union",
+      "gate": 0.999,
+      "e2e_dice": 0.6304667759450068,
+      "nobox_rate": 0.020833333333333332,
+      "nobox_n": 2,
+      "normal_fg": 0.6404054302238577,
+      "normal_clean": 0.1,
+      "normal_spec": 0.35959456977614235,
+      "multi_n": 9,
+      "p_vs_B0": 0.007685794055213263,
+      "n_better": 9,
+      "n_worse": 0
+    },
+    "F_majority": {
+      "desc": "全盲兜底 + 多数投票",
+      "policy": "blind",
+      "agg": "majority",
+      "gate": 0.999,
+      "e2e_dice": 0.6404912036174163,
+      "nobox_rate": 0.020833333333333332,
+      "nobox_n": 2,
+      "normal_fg": 0.2601082399739792,
+      "normal_clean": 0.1,
+      "normal_spec": 0.7398917600260209,
+      "multi_n": 9,
+      "p_vs_B0": 0.007685794055213263,
+      "n_better": 9,
+      "n_worse": 0
+    },
+    "F_intersect": {
+      "desc": "全盲兜底 + 交集",
+      "policy": "blind",
+      "agg": "intersect",
+      "gate": 0.999,
+      "e2e_dice": 0.6358062363809521,
+      "nobox_rate": 0.020833333333333332,
+      "nobox_n": 2,
+      "normal_fg": 0.10029488234463549,
+      "normal_clean": 0.1,
+      "normal_spec": 0.8997051176553645,
+      "multi_n": 9,
+      "p_vs_B0": 0.1386406338132186,
+      "n_better": 5,
+      "n_worse": 0
+    },
+    "F_select": {
+      "desc": "全盲兜底 + 按 MedSAM 分数选",
+      "policy": "blind",
+      "agg": "select",
+      "gate": 0.999,
+      "e2e_dice": 0.6339454382135973,
+      "nobox_rate": 0.020833333333333332,
+      "nobox_n": 2,
+      "normal_fg": 0.5354775895545909,
+      "normal_clean": 0.1,
+      "normal_spec": 0.4645224104454091,
+      "multi_n": 9,
+      "p_vs_B0": 0.007685794055213263,
+      "n_better": 9,
+      "n_worse": 0
+    },
+    "FR_select": {
+      "desc": "兜底+欠自信救回 + 选",
+      "policy": "blind+rescue",
+      "agg": "select",
+      "gate": 0.999,
+      "e2e_dice": 0.6340705833286736,
+      "nobox_rate": 0.0,
+      "nobox_n": 0,
+      "normal_fg": 0.5355932920717852,
+      "normal_clean": 0.05,
+      "normal_spec": 0.4644067079282148,
+      "multi_n": 11,
+      "p_vs_B0": 0.004439092656792155,
+      "n_better": 10,
+      "n_worse": 0
+    },
+    "FR_union": {
+      "desc": "兜底+欠自信救回 + 并集",
+      "policy": "blind+rescue",
+      "agg": "union",
+      "gate": 0.999,
+      "e2e_dice": 0.6305925827058179,
+      "nobox_rate": 0.0,
+      "nobox_n": 0,
+      "normal_fg": 0.6405432394286572,
+      "normal_clean": 0.05,
+      "normal_spec": 0.3594567605713428,
+      "multi_n": 11,
+      "p_vs_B0": 0.004439092656792155,
+      "n_better": 10,
+      "n_worse": 0
+    },
+    "T_select": {
+      "desc": "全类型定向 + 选",
+      "policy": "type",
+      "agg": "select",
+      "gate": 0.999,
+      "e2e_dice": 0.6273608086591784,
+      "nobox_rate": 0.0,
+      "nobox_n": 0,
+      "normal_fg": 0.5357147187302446,
+      "normal_clean": 0.05,
+      "normal_spec": 0.46428528126975543,
+      "multi_n": 29,
+      "p_vs_B0": 0.6140541665098298,
+      "n_better": 48,
+      "n_worse": 40
+    },
+    "FR_select_g50": {
+      "desc": "只兜底 pmax<0.5（= 全盲）",
+      "policy": "blind+rescue",
+      "agg": "select",
+      "gate": 0.5,
+      "e2e_dice": 0.6340705833286736,
+      "nobox_rate": 0.0,
+      "nobox_n": 0,
+      "normal_fg": 0.5355225666662384,
+      "normal_clean": 0.1,
+      "normal_spec": 0.46447743333376157,
+      "multi_n": 11,
+      "p_vs_B0": 0.004439092656792155,
+      "n_better": 10,
+      "n_worse": 0
+    },
+    "FR_select_g20": {
+      "desc": "只兜底 pmax<0.2（更严）",
+      "policy": "blind+rescue",
+      "agg": "select",
+      "gate": 0.2,
+      "e2e_dice": 0.6339454382135973,
+      "nobox_rate": 0.020833333333333332,
+      "nobox_n": 2,
+      "normal_fg": 0.5354775895545909,
+      "normal_clean": 0.1,
+      "normal_spec": 0.4645224104454091,
+      "multi_n": 9,
+      "p_vs_B0": 0.007685794055213263,
+      "n_better": 9,
+      "n_worse": 0
+    },
+    "FR_select_g35": {
+      "desc": "只兜底 pmax<0.35",
+      "policy": "blind+rescue",
+      "agg": "select",
+      "gate": 0.35,
+      "e2e_dice": 0.6339454382135973,
+      "nobox_rate": 0.020833333333333332,
+      "nobox_n": 2,
+      "normal_fg": 0.5354775895545909,
+      "normal_clean": 0.1,
+      "normal_spec": 0.4645224104454091,
+      "multi_n": 9,
+      "p_vs_B0": 0.007685794055213263,
+      "n_better": 9,
+      "n_worse": 0
+    }
+  },
+  "type_dist": {
+    "正确": 67,
+    "偏移": 13,
+    "尺度错": 7,
+    "欠自信": 4,
+    "全盲": 25
+  },
+  "gate_sweep": {
+    "0.1": {
+      "n_lesion_flagged": 5,
+      "n_normal_flagged": 11,
+      "precision": 0.3125,
+      "recall_of_nobox": 0.45454545454545453
+    },
+    "0.2": {
+      "n_lesion_flagged": 9,
+      "n_normal_flagged": 16,
+      "precision": 0.36,
+      "recall_of_nobox": 0.8181818181818182
+    },
+    "0.35": {
+      "n_lesion_flagged": 9,
+      "n_normal_flagged": 16,
+      "precision": 0.36,
+      "recall_of_nobox": 0.8181818181818182
+    },
+    "0.5": {
+      "n_lesion_flagged": 11,
+      "n_normal_flagged": 17,
+      "precision": 0.39285714285714285,
+      "recall_of_nobox": 1.0
+    }
+  },
+  "per_image_FR_select": [
+    {
+      "name": "benign/benign (100).png",
+      "cls": "benign",
+      "dice": 0.7035208106220514,
+      "fg_ratio": 0.03653643498124742,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (102).png",
+      "cls": "benign",
+      "dice": 0.9715536105033564,
+      "fg_ratio": 0.050501629001396285,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (109).png",
+      "cls": "benign",
+      "dice": 0.7860438207417394,
+      "fg_ratio": 0.14755811312182934,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (118).png",
+      "cls": "benign",
+      "dice": 0.8956625428536618,
+      "fg_ratio": 0.01626241169787087,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (13).png",
+      "cls": "benign",
+      "dice": 0.9468760318450794,
+      "fg_ratio": 0.14614426896868818,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (132).png",
+      "cls": "benign",
+      "dice": 0.9361029934449403,
+      "fg_ratio": 0.02329942689110931,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (136).png",
+      "cls": "benign",
+      "dice": 0.9061318244211151,
+      "fg_ratio": 0.037755018785234455,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (14).png",
+      "cls": "benign",
+      "dice": 0.875897666069615,
+      "fg_ratio": 0.012210071422990606,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (152).png",
+      "cls": "benign",
+      "dice": 0.9445573831085293,
+      "fg_ratio": 0.21990780589506703,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (161).png",
+      "cls": "benign",
+      "dice": 0.9241488519410269,
+      "fg_ratio": 0.012190855717458097,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (169).png",
+      "cls": "benign",
+      "dice": 0.033245608667564416,
+      "fg_ratio": 0.30519290484171957,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "benign/benign (18).png",
+      "cls": "benign",
+      "dice": 0.9070997631684382,
+      "fg_ratio": 0.2389609702248635,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (182).png",
+      "cls": "benign",
+      "dice": 0.7751513967615715,
+      "fg_ratio": 0.007872667483898586,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (184).png",
+      "cls": "benign",
+      "dice": 0.8874114690429805,
+      "fg_ratio": 0.11426604613945388,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (186).png",
+      "cls": "benign",
+      "dice": 0.9051482358093044,
+      "fg_ratio": 0.09346066855694583,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (19).png",
+      "cls": "benign",
+      "dice": 0.9188651070204364,
+      "fg_ratio": 0.005611281629381177,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (215).png",
+      "cls": "benign",
+      "dice": 0.8772387410895737,
+      "fg_ratio": 0.024781144781144782,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (216).png",
+      "cls": "benign",
+      "dice": 0.882306268183465,
+      "fg_ratio": 0.04815203965414909,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (224).png",
+      "cls": "benign",
+      "dice": 0.5292879691340125,
+      "fg_ratio": 0.34544956304994145,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "benign/benign (229).png",
+      "cls": "benign",
+      "dice": 0.9181015025475008,
+      "fg_ratio": 0.059925305568130374,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "benign/benign (23).png",
+      "cls": "benign",
+      "dice": 0.7882763254734321,
+      "fg_ratio": 0.02712277912704197,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (233).png",
+      "cls": "benign",
+      "dice": 0.42100171496444455,
+      "fg_ratio": 0.6156883821808521,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "benign/benign (235).png",
+      "cls": "benign",
+      "dice": 4.488128899041838e-12,
+      "fg_ratio": 0.001980311355311355,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (238).png",
+      "cls": "benign",
+      "dice": 0.8838694957793675,
+      "fg_ratio": 0.11256154990719577,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (241).png",
+      "cls": "benign",
+      "dice": 0.8610530865091801,
+      "fg_ratio": 0.059515984012209956,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (243).png",
+      "cls": "benign",
+      "dice": 3.4652436066135375e-12,
+      "fg_ratio": 0.004077587214013032,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (246).png",
+      "cls": "benign",
+      "dice": 0.9379014989315524,
+      "fg_ratio": 0.008178925482177524,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (247).png",
+      "cls": "benign",
+      "dice": 0.03728257480305495,
+      "fg_ratio": 0.7795007645753914,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "benign/benign (257).png",
+      "cls": "benign",
+      "dice": 0.07391558062813866,
+      "fg_ratio": 0.25703032819123367,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "benign/benign (259).png",
+      "cls": "benign",
+      "dice": 0.9147378832842991,
+      "fg_ratio": 0.060198511166253105,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (26).png",
+      "cls": "benign",
+      "dice": 0.9696255056197,
+      "fg_ratio": 0.1279518958817172,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (260).png",
+      "cls": "benign",
+      "dice": 0.9517374517377257,
+      "fg_ratio": 0.05134131692934882,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (265).png",
+      "cls": "benign",
+      "dice": 0.7959756215546291,
+      "fg_ratio": 0.048130380200860835,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (269).png",
+      "cls": "benign",
+      "dice": 0.4147421093204893,
+      "fg_ratio": 0.011883098979873174,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (280).png",
+      "cls": "benign",
+      "dice": 0.9514936917736894,
+      "fg_ratio": 0.0563778276741664,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (287).png",
+      "cls": "benign",
+      "dice": 0.7431738643837502,
+      "fg_ratio": 0.1930119951579179,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (290).png",
+      "cls": "benign",
+      "dice": 0.9393447940319102,
+      "fg_ratio": 0.14037095392099952,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (293).png",
+      "cls": "benign",
+      "dice": 0.09856354755098777,
+      "fg_ratio": 0.7848823622124274,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "benign/benign (298).png",
+      "cls": "benign",
+      "dice": 1.0616838305439887e-11,
+      "fg_ratio": 0.001509280704257818,
+      "nobox": false,
+      "ncand": 3,
+      "type": "欠自信"
+    },
+    {
+      "name": "benign/benign (300).png",
+      "cls": "benign",
+      "dice": 0.8999316401117423,
+      "fg_ratio": 0.11649672677348603,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (315).png",
+      "cls": "benign",
+      "dice": 0.3179383527102785,
+      "fg_ratio": 0.0063289184075375525,
+      "nobox": false,
+      "ncand": 1,
+      "type": "尺度错"
+    },
+    {
+      "name": "benign/benign (316).png",
+      "cls": "benign",
+      "dice": 0.31196533718539426,
+      "fg_ratio": 0.06531498352393875,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (320).png",
+      "cls": "benign",
+      "dice": 0.9721639794666173,
+      "fg_ratio": 0.026164874551971327,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (323).png",
+      "cls": "benign",
+      "dice": 0.9494411229532789,
+      "fg_ratio": 0.030307539682539682,
+      "nobox": false,
+      "ncand": 1,
+      "type": "尺度错"
+    },
+    {
+      "name": "benign/benign (330).png",
+      "cls": "benign",
+      "dice": 0.9580745775336734,
+      "fg_ratio": 0.14616830511200218,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (335).png",
+      "cls": "benign",
+      "dice": 0.044903050236062655,
+      "fg_ratio": 0.0015603697603492706,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "benign/benign (359).png",
+      "cls": "benign",
+      "dice": 0.37697419522146813,
+      "fg_ratio": 0.07163853195599228,
+      "nobox": false,
+      "ncand": 1,
+      "type": "尺度错"
+    },
+    {
+      "name": "benign/benign (362).png",
+      "cls": "benign",
+      "dice": 0.39727692683206234,
+      "fg_ratio": 0.0031611774902494893,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (363).png",
+      "cls": "benign",
+      "dice": 0.8089390419315307,
+      "fg_ratio": 0.014574088232744012,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (373).png",
+      "cls": "benign",
+      "dice": 0.7526486168343414,
+      "fg_ratio": 0.06682831628127033,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "benign/benign (374).png",
+      "cls": "benign",
+      "dice": 0.6960591133079789,
+      "fg_ratio": 0.010389171694318753,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "benign/benign (375).png",
+      "cls": "benign",
+      "dice": 0.9106717288761063,
+      "fg_ratio": 0.06610473984520648,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (380).png",
+      "cls": "benign",
+      "dice": 0.9324268072711779,
+      "fg_ratio": 0.016592074592074593,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (396).png",
+      "cls": "benign",
+      "dice": 1.6361256544234928e-11,
+      "fg_ratio": 0.016947960618846694,
+      "nobox": false,
+      "ncand": 1,
+      "type": "尺度错"
+    },
+    {
+      "name": "benign/benign (4).png",
+      "cls": "benign",
+      "dice": 0.8055178652237558,
+      "fg_ratio": 0.007028964448319287,
+      "nobox": false,
+      "ncand": 1,
+      "type": "尺度错"
+    },
+    {
+      "name": "benign/benign (411).png",
+      "cls": "benign",
+      "dice": 0.23617750420353137,
+      "fg_ratio": 0.015309558711167206,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "benign/benign (415).png",
+      "cls": "benign",
+      "dice": 0.9380283101591036,
+      "fg_ratio": 0.4209601743838305,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (417).png",
+      "cls": "benign",
+      "dice": 0.1467909499566004,
+      "fg_ratio": 0.34761862719917813,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "benign/benign (431).png",
+      "cls": "benign",
+      "dice": 0.6357993625291763,
+      "fg_ratio": 0.007554556254534727,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (434).png",
+      "cls": "benign",
+      "dice": 0.9730565889955227,
+      "fg_ratio": 0.17073570428928678,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (49).png",
+      "cls": "benign",
+      "dice": 0.9547177744773064,
+      "fg_ratio": 0.3393817925067925,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (5).png",
+      "cls": "benign",
+      "dice": 0.9392180818579838,
+      "fg_ratio": 0.011527557435807039,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (56).png",
+      "cls": "benign",
+      "dice": 0.9120107059218467,
+      "fg_ratio": 0.054627215713373325,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (59).png",
+      "cls": "benign",
+      "dice": 0.9143958373485666,
+      "fg_ratio": 0.04597243096354997,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "benign/benign (81).png",
+      "cls": "benign",
+      "dice": 8.740494711924301e-12,
+      "fg_ratio": 0.028442151038157653,
+      "nobox": false,
+      "ncand": 1,
+      "type": "尺度错"
+    },
+    {
+      "name": "malignant/malignant (10).png",
+      "cls": "malignant",
+      "dice": 0.6629647513319293,
+      "fg_ratio": 0.015504004053622374,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (100).png",
+      "cls": "malignant",
+      "dice": 0.5714668931927774,
+      "fg_ratio": 0.024357678439418856,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (102).png",
+      "cls": "malignant",
+      "dice": 0.8724534833406556,
+      "fg_ratio": 0.10253290959668408,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (11).png",
+      "cls": "malignant",
+      "dice": 0.14851803709144765,
+      "fg_ratio": 0.7771997212362847,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "malignant/malignant (110).png",
+      "cls": "malignant",
+      "dice": 0.9082881573804935,
+      "fg_ratio": 0.034355781351464915,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (116).png",
+      "cls": "malignant",
+      "dice": 3.5229874933819867e-12,
+      "fg_ratio": 0.05860531775064532,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "malignant/malignant (12).png",
+      "cls": "malignant",
+      "dice": 0.9055063401085157,
+      "fg_ratio": 0.0330993566528908,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (13).png",
+      "cls": "malignant",
+      "dice": 0.4869155281918082,
+      "fg_ratio": 0.029044605380483243,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (138).png",
+      "cls": "malignant",
+      "dice": 0.01201393105086106,
+      "fg_ratio": 0.0007240460308412798,
+      "nobox": false,
+      "ncand": 3,
+      "type": "欠自信"
+    },
+    {
+      "name": "malignant/malignant (140).png",
+      "cls": "malignant",
+      "dice": 0.739799927787652,
+      "fg_ratio": 0.06998868661935617,
+      "nobox": false,
+      "ncand": 1,
+      "type": "尺度错"
+    },
+    {
+      "name": "malignant/malignant (148).png",
+      "cls": "malignant",
+      "dice": 0.34386778778359334,
+      "fg_ratio": 0.002303556722656432,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "malignant/malignant (154).png",
+      "cls": "malignant",
+      "dice": 0.9107620537409307,
+      "fg_ratio": 0.19374457330687175,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (155).png",
+      "cls": "malignant",
+      "dice": 0.6677493713333548,
+      "fg_ratio": 0.07135430447534258,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (157).png",
+      "cls": "malignant",
+      "dice": 1.6347882949131359e-12,
+      "fg_ratio": 0.21045082892894248,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (165).png",
+      "cls": "malignant",
+      "dice": 0.7720333790701046,
+      "fg_ratio": 0.26906835261839435,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (167).png",
+      "cls": "malignant",
+      "dice": 0.9051788124157345,
+      "fg_ratio": 0.23594809938974604,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (178).png",
+      "cls": "malignant",
+      "dice": 4.223864836307396e-12,
+      "fg_ratio": 0.0023661289216396018,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "malignant/malignant (20).png",
+      "cls": "malignant",
+      "dice": 0.15022510354916221,
+      "fg_ratio": 0.015736653461611017,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "malignant/malignant (200).png",
+      "cls": "malignant",
+      "dice": 0.19674220963741682,
+      "fg_ratio": 0.007169837371914356,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (206).png",
+      "cls": "malignant",
+      "dice": 0.89061431817752,
+      "fg_ratio": 0.25789638946381505,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (208).png",
+      "cls": "malignant",
+      "dice": 0.856656162807367,
+      "fg_ratio": 0.29428491925562866,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (25).png",
+      "cls": "malignant",
+      "dice": 0.7495938216378079,
+      "fg_ratio": 0.19900986357280526,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (29).png",
+      "cls": "malignant",
+      "dice": 0.8666990605767658,
+      "fg_ratio": 0.15051596682802357,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (31).png",
+      "cls": "malignant",
+      "dice": 0.6254158750356232,
+      "fg_ratio": 0.2484979905273541,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (34).png",
+      "cls": "malignant",
+      "dice": 0.8821516256235319,
+      "fg_ratio": 0.035689249137411685,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (42).png",
+      "cls": "malignant",
+      "dice": 0.9212141652615157,
+      "fg_ratio": 0.1139700956089256,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (46).png",
+      "cls": "malignant",
+      "dice": 0.399080489544133,
+      "fg_ratio": 0.013749484087587985,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "malignant/malignant (53).png",
+      "cls": "malignant",
+      "dice": 0.2960938755864754,
+      "fg_ratio": 0.010380635748640853,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "malignant/malignant (74).png",
+      "cls": "malignant",
+      "dice": 0.11746801136261566,
+      "fg_ratio": 0.6975188481028303,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "malignant/malignant (75).png",
+      "cls": "malignant",
+      "dice": 1.7603774249168039e-12,
+      "fg_ratio": 0.0964599432005812,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "malignant/malignant (88).png",
+      "cls": "malignant",
+      "dice": 0.919129012410644,
+      "fg_ratio": 0.0704524862180012,
+      "nobox": false,
+      "ncand": 1,
+      "type": "正确"
+    },
+    {
+      "name": "normal/normal (109).png",
+      "cls": "normal",
+      "dice": 4.628579627767484e-13,
+      "fg_ratio": 0.816588868940754,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (116).png",
+      "cls": "normal",
+      "dice": 2.887719683274071e-13,
+      "fg_ratio": 0.7540835102618542,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (117).png",
+      "cls": "normal",
+      "dice": 6.827336655965844e-13,
+      "fg_ratio": 0.33139508575048643,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (127).png",
+      "cls": "normal",
+      "dice": 1.1464603038106661e-12,
+      "fg_ratio": 0.33653567914809884,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (128).png",
+      "cls": "normal",
+      "dice": 8.728212200287394e-13,
+      "fg_ratio": 0.3090566261680226,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (132).png",
+      "cls": "normal",
+      "dice": 1.9326958014112673e-13,
+      "fg_ratio": 0.8624970828471412,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (15).png",
+      "cls": "normal",
+      "dice": 5.08468543593292e-13,
+      "fg_ratio": 0.7650823166936387,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (19).png",
+      "cls": "normal",
+      "dice": 3.1331167305290475e-13,
+      "fg_ratio": 0.8544035764000428,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (3).png",
+      "cls": "normal",
+      "dice": 1.139068925059358e-12,
+      "fg_ratio": 0.3407903419898296,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (37).png",
+      "cls": "normal",
+      "dice": 3.448275861950059e-11,
+      "fg_ratio": 0.005012583312591609,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "normal/normal (38).png",
+      "cls": "normal",
+      "dice": 2.4602848517795337e-13,
+      "fg_ratio": 0.8605961926499639,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (39).png",
+      "cls": "normal",
+      "dice": 2.4378352023397273e-13,
+      "fg_ratio": 0.8768217243163057,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (48).png",
+      "cls": "normal",
+      "dice": 5.780346817468007e-10,
+      "fg_ratio": 0.0014145081109366825,
+      "nobox": false,
+      "ncand": 3,
+      "type": "欠自信"
+    },
+    {
+      "name": "normal/normal (51).png",
+      "cls": "normal",
+      "dice": 4.648028074087407e-13,
+      "fg_ratio": 0.7925477050025787,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (53).png",
+      "cls": "normal",
+      "dice": 2.362837295023306e-13,
+      "fg_ratio": 0.8627705204103266,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (70).png",
+      "cls": "normal",
+      "dice": 5.100687572682196e-13,
+      "fg_ratio": 0.7473003312406851,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (81).png",
+      "cls": "normal",
+      "dice": 2.4691358018594726e-10,
+      "fg_ratio": 0.0008995422329525642,
+      "nobox": false,
+      "ncand": 3,
+      "type": "欠自信"
+    },
+    {
+      "name": "normal/normal (88).png",
+      "cls": "normal",
+      "dice": 4.4486756292631887e-13,
+      "fg_ratio": 0.8669623572971306,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    },
+    {
+      "name": "normal/normal (9).png",
+      "cls": "normal",
+      "dice": 1.579778830714095e-10,
+      "fg_ratio": 0.0026044559649447633,
+      "nobox": false,
+      "ncand": 1,
+      "type": "偏移"
+    },
+    {
+      "name": "normal/normal (90).png",
+      "cls": "normal",
+      "dice": 1.1134369571982436e-12,
+      "fg_ratio": 0.3245028326974217,
+      "nobox": false,
+      "ncand": 3,
+      "type": "全盲"
+    }
+  ]
+}

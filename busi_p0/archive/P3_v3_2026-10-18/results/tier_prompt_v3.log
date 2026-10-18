@@ -1,0 +1,60 @@
+coarse: /mnt/workspace/busi_p0/results/viz_unetpp_seed0.pth
+/mnt/workspace/busi_p0/src/diag_tier_prompt.py:51: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  sd = torch.load(ckpt, map_location="cpu")
+computing coarse signals once ...
+Loading weights:   0%|          | 0/315 [00:00<?, ?it/s]Loading weights: 100%|██████████| 315/315 [00:00<00:00, 6661.42it/s]
+The tied weights mapping and config for this model specifies to tie shared_image_embedding.positional_embedding to prompt_encoder.shared_embedding.positional_embedding, but both are present in the checkpoints, so we will NOT tie them. You should update the config with `tie_word_embeddings=False` to silence this warning
+The image processor of type `SamImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. 
+
+variant        policy        gate     dice   nobox   nor.fg  multi
+B0_single      single        1.00   0.6172   0.115   0.0004      0
+F_union        blind         1.00   0.6305   0.021   0.6404      9
+F_majority     blind         1.00   0.6405   0.021   0.2601      9
+F_intersect    blind         1.00   0.6358   0.021   0.1003      9
+F_select       blind         1.00   0.6339   0.021   0.5355      9
+FR_select      blind+rescue  1.00   0.6341   0.000   0.5356     11
+FR_union       blind+rescue  1.00   0.6306   0.000   0.6405     11
+T_select       type          1.00   0.6274   0.000   0.5357     29
+FR_select_g50  blind+rescue  0.50   0.6341   0.000   0.5355     11
+FR_select_g20  blind+rescue  0.20   0.6339   0.021   0.5355      9
+FR_select_g35  blind+rescue  0.35   0.6339   0.021   0.5355      9
+# P3　误差类型感知的定向提示纠正（v3）
+
+> 粗模型 `viz_unetpp_seed0.pth`；τ_d=80分位=0.028、τ_s=80分位=1.47；“全盲”判据**无阈值**：掩膜 argmax 从未判为病灶（无 ≥0.5 连通域）。
+
+| 变体 | 说明 | 门控 | 聚合 | 端到端 Dice | Δ vs B0 | p | 无框率 | 正常图 fg | 正常图特异度 | 空掩膜率 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| B0_single | 单框 s=1.0（基线） | — | union | **0.6172** | +0.0000 | 1.000 | 0.115 | 0.0004 | 0.9996 | 0.90 |
+| F_union | 全盲兜底 + 并集 | — | union | **0.6305** | +0.0133 | 0.008 | 0.021 | 0.6404 | 0.3596 | 0.10 |
+| F_majority | 全盲兜底 + 多数投票 | — | majority | **0.6405** | +0.0233 | 0.008 | 0.021 | 0.2601 | 0.7399 | 0.10 |
+| F_intersect | 全盲兜底 + 交集 | — | intersect | **0.6358** | +0.0186 | 0.139 | 0.021 | 0.1003 | 0.8997 | 0.10 |
+| F_select | 全盲兜底 + 按 MedSAM 分数选 | — | select | **0.6339** | +0.0167 | 0.008 | 0.021 | 0.5355 | 0.4645 | 0.10 |
+| FR_select | 兜底+欠自信救回 + 选 | — | select | **0.6341** | +0.0169 | 0.004 | 0.000 | 0.5356 | 0.4644 | 0.05 |
+| FR_union | 兜底+欠自信救回 + 并集 | — | union | **0.6306** | +0.0134 | 0.004 | 0.000 | 0.6405 | 0.3595 | 0.05 |
+| T_select | 全类型定向 + 选 | — | select | **0.6274** | +0.0101 | 0.614 | 0.000 | 0.5357 | 0.4643 | 0.05 |
+| FR_select_g50 | 只兜底 pmax<0.5（= 全盲） | 0.50 | select | **0.6341** | +0.0169 | 0.004 | 0.000 | 0.5355 | 0.4645 | 0.10 |
+| FR_select_g20 | 只兜底 pmax<0.2（更严） | 0.20 | select | **0.6339** | +0.0167 | 0.008 | 0.021 | 0.5355 | 0.4645 | 0.10 |
+| FR_select_g35 | 只兜底 pmax<0.35 | 0.35 | select | **0.6339** | +0.0167 | 0.008 | 0.021 | 0.5355 | 0.4645 | 0.10 |
+
+**Dice 最优**：`F_majority` = **0.6405** vs 基线 B0 = 0.6172 → Δ = **+0.0233**（p=0.008，9 张变好 / 0 张变差）；代价是正常图假阳 **0.0004 → 0.2601**。
+
+**聚合方式对比（同一批多候选，仅换聚合）**
+
+| 聚合 | Dice | 正常图 fg | 正常图特异度 |
+|---|---|---|---|
+| union | 0.6305 | 0.6404 | 0.3596 |
+| majority | 0.6405 | 0.2601 | 0.7399 |
+| intersect | 0.6358 | 0.1003 | 0.8997 |
+| select | 0.6339 | 0.5355 | 0.4645 |
+
+**丢失判据的精度上限（为何收紧 τ_p 无效）**
+
+| τ_p | 判为低置信的病灶 | 判为低置信的正常图 | “是病灶”精度 | 覆盖全盲图比例 |
+|---|---|---|---|---|
+| 0.1 | 5 | 11 | 0.31 | 0.45 |
+| 0.2 | 9 | 16 | 0.36 | 0.82 |
+| 0.35 | 9 | 16 | 0.36 | 0.82 |
+| 0.5 | 11 | 17 | 0.39 | 1.00 |
+
+**误差类型分布（测试集 116 张）**：正确 67、偏移 13、尺度错 7、欠自信 4、全盲 25
+wrote tier_prompt.{json,md,png}
