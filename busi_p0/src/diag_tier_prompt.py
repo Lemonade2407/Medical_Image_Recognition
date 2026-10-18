@@ -223,13 +223,19 @@ def combine(masks, scores, how, shape):
 
 
 # ------------------------------ evaluation ------------------------------ #
-def evaluate(records, signals, medsam, tau, policy, how):
+def evaluate(records, signals, medsam, tau, policy, how, presence=None, presence_thr=0.5):
     model, proc = medsam
     per = []
     for rec in records:
         sig = signals[rec["name"]]
         gt = load_mask(rec)
+        t = diagnose(sig, tau)
         cs = candidates(sig, tau, policy)
+        p_abn = presence.get(rec["name"]) if presence else None
+        gated = bool(cs and t == "全盲" and presence is not None
+                     and p_abn is not None and p_abn < presence_thr)
+        if gated:
+            cs = []
         if not cs:
             pred = np.zeros(gt.shape, dtype=bool); nobox = True
         else:
@@ -239,7 +245,7 @@ def evaluate(records, signals, medsam, tau, policy, how):
             nobox = False
         per.append({"name": rec["name"], "cls": rec["cls"], "dice": dice_binary(pred, gt),
                     "fg_ratio": float(pred.mean()), "nobox": nobox,
-                    "ncand": len(cs), "type": diagnose(sig, tau)})
+                    "ncand": len(cs), "type": t, "p_abn": p_abn, "gated": gated})
     return per
 
 
@@ -281,6 +287,11 @@ def parse_args():
                                               "empty -> results/p1_<model>_seed<k>.pth")
     ap.add_argument("--seeds", default="0,1,2")
     ap.add_argument("--out", default="tier_prompt")
+    ap.add_argument("--presence", default="",
+                    help="JSON from train_presence_clf (_scores.json, flat or {threshold,scores}); "
+                         "gates the blind fallback (T2)")
+    ap.add_argument("--presence-thr", type=float, default=None,
+                    help="override the threshold stored in the presence JSON")
     return ap.parse_args()
 
 
@@ -294,8 +305,21 @@ def main():
     test = [byname[n] for n in split["test"]]
 
     medsam = epq.load_medsam()
+    presence, pres_thr = None, 0.5
+    if args.presence:
+        raw = json.load(open(args.presence))
+        if isinstance(raw, dict) and "scores" in raw:
+            presence, file_thr = raw["scores"], raw.get("threshold")
+        else:
+            presence, file_thr = raw, None
+        if args.presence_thr is not None:
+            pres_thr = args.presence_thr
+        elif file_thr is not None:
+            pres_thr = float(file_thr)
     out = {"model": args.model, "size": args.size, "gray": bool(args.gray),
-           "seeds": seeds, "ckpts": [], "variants": {}, "per_seed": {}, "gate_sweep": {}}
+           "seeds": seeds, "ckpts": [], "variants": {}, "per_seed": {}, "gate_sweep": {},
+           "presence": ({"path": os.path.basename(args.presence), "thr": pres_thr}
+                        if presence else None)}
 
     for seed in seeds:
         ck = (args.ckpt.format(seed=seed) if args.ckpt
@@ -326,7 +350,8 @@ def main():
         print("%-15s %7s %7s %7s" % ("variant", "dice", "nobox", "nor.fg"), flush=True)
         for name, policy, how, gate, desc in VARIANTS:
             tg = dict(tau); tg["p"] = gate
-            per = evaluate(test, signals, medsam, tg, policy, how)
+            per = evaluate(test, signals, medsam, tg, policy, how,
+                           presence, pres_thr)
             a = agg_metrics(per)
             ps["variants"][name] = dict(a, **{"desc": desc, "policy": policy, "agg": how,
                                               "gate": gate,

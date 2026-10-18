@@ -9,8 +9,12 @@ Writes:
   docs/七种模型对比.md
 """
 import os
+import sys
 import json
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from summarize_p1 import CFG as LOSS_CFG, LOSS_LABEL, ms as loss_ms, collect as collect_loss  # noqa
 
 ROOT = "/mnt/workspace/busi_p0"
 RES = os.path.join(ROOT, "results")
@@ -228,6 +232,34 @@ def main():
     A("")
     A("> 四者为 3 种子均值±标准差，损失统一为 **CE+Dice**。\n")
 
+    # ---- 3b. loss comparison ----
+    loss_rows = collect_loss(RES)
+
+    def _lm(model, loss):
+        for r in loss_rows:
+            if r["model"] == model and r["loss"] == loss:
+                return r["stats"]["mean"] if r["stats"] else None
+        return None
+
+    if loss_rows:
+        A("### 3b. 损失函数对照（150ep + 早停 + 最优轮回滚，3 种子）\n")
+        A("> 训练 150 epoch，验证集 Dice 早停（patience 15）+ 最优轮回滚；其余配置与上表一致。\n")
+        A("| 模型 | 损失 | Dice(病灶) | 最优轮 |")
+        A("|---|---|---|---|")
+        for r in loss_rows:
+            eps = [p["best_epoch"] for p in r["perseed"] if p["best_epoch"]]
+            A(f"| {r['label']} | {LOSS_LABEL[r['loss']]} | **{loss_ms(r['stats'])}** | "
+              f"{int(np.mean(eps)) if eps else '—'} |")
+        A("")
+        A("**同模型内 Δ（相对 CE+Dice）**\n")
+        A("| 模型 | Tversky − CE | Boundary − CE |")
+        A("|---|---|---|")
+        for model, label, *_ in LOSS_CFG:
+            ce, tv, bd = _lm(model, "ce_dice"), _lm(model, "tversky"), _lm(model, "boundary")
+            A(f"| {label} | {'%+.4f' % (tv-ce) if (ce is not None and tv is not None) else '—'} | "
+              f"{'%+.4f' % (bd-ce) if (ce is not None and bd is not None) else '—'} |")
+        A("")
+
     # ---- 4. P0-2 ----
     A("## 四、P0-2　多种子重复 + 显著性检验（U-Net vs Attention U-Net）\n")
     A("> 种子 0/1/2；同一冻结测试集。判定规则：**|差值| > 标准差 且 p < 0.05** 才算有效改进。\n")
@@ -285,6 +317,20 @@ def main():
             A(f"- 注意力门控（U-Net → Attention U-Net）差值 {wtest['delta']:+.4f}"
               f"（逐图配对；3 种子均值差 {sup['Attention U-Net']-sup['U-Net']:+.4f}），"
               f"p={wtest['p_value']:.4f}，在本数据规模下未达统计显著。")
+    if loss_rows:
+        bnd = [(lab, _lm(m, "boundary") - _lm(m, "ce_dice"))
+               for m, lab, *_ in LOSS_CFG
+               if _lm(m, "boundary") is not None and _lm(m, "ce_dice") is not None]
+        tvd = [(lab, _lm(m, "tversky") - _lm(m, "ce_dice"))
+               for m, lab, *_ in LOSS_CFG
+               if _lm(m, "tversky") is not None and _lm(m, "ce_dice") is not None]
+        light = [d for lab, d in tvd if lab != "TransUNet"]
+        tr = [d for lab, d in tvd if lab == "TransUNet"]
+        A(f"- 损失函数：**Boundary 一致劣于 CE+Dice**（"
+          + "、".join(f"{lab} {d:+.4f}" for lab, d in bnd) + "）；"
+          + (f"Tversky 与 CE+Dice 差距 ≤{max(light):.3f}（轻量模型）" if light else "")
+          + (f"，**TransUNet {tr[0]:+.3f}**" if tr else "")
+          + " → 损失选择影响很小且**模型依赖**。")
     A("- 提示式与监督式的评价口径已统一到同一测试集/同一指标，但提示条件不同（提示式需 1 个 GT 点，监督式全自动），适用场景互补。")
     A("")
 
