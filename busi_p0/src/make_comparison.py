@@ -63,6 +63,17 @@ def aggregate(recs):
     return {"aggregate": out, "params": recs[0].get("params"), "n_seeds": len(recs)}
 
 
+def miou_from_per_image(per):
+    """2-class pixel-histogram mIoU; background IoU = tn/(tn+fp+fn).
+
+    Older result JSONs stored `miou_hist` with the wrong denominator
+    (tn/(tn+fp) = specificity), so it is recomputed from per-image counts.
+    """
+    tp = sum(m["tp"] for m in per); fp = sum(m["fp"] for m in per)
+    fn = sum(m["fn"] for m in per); tn = sum(m["tn"] for m in per)
+    return float(0.5 * (tp / (tp + fp + fn + 1e-7) + tn / (tn + fp + fn + 1e-7)))
+
+
 def load_sup_records(model, size, mode):
     """Per-seed records on the unified probability path (postproc baseline variant)."""
     params = {r.get("seed"): r.get("params") for r in load_seeds(f"p1_{model}")}
@@ -72,7 +83,10 @@ def load_sup_records(model, size, mode):
         if not rp:
             continue
         v = rp["variants"]["baseline"]
-        recs.append({"agg": v["agg"], "per_image": v["per_image"], "params": params.get(s)})
+        a = dict(v["agg"])
+        if v.get("per_image"):
+            a["miou_hist"] = miou_from_per_image(v["per_image"])
+        recs.append({"agg": a, "per_image": v["per_image"], "params": params.get(s)})
     return recs
 
 
